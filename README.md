@@ -14,11 +14,38 @@ I put these together after clicking through the dashboard and reading the docs e
 - `callkaro-widget-integrations` for website widget and CRM links like HubSpot
 - `callkaro-qa-ops` for audits, feedback, analytics, pricing, daily ops
 
+## Install
+
+### Claude Code
+
+Pick one scope:
+
+```bash
+# user scope, works in every project
+git clone https://github.com/TejasLamba2006/callkaro-skills.git /tmp/callkaro-skills
+mkdir -p ~/.claude/skills
+cp -r /tmp/callkaro-skills/skills/* ~/.claude/skills/
+```
+
+```bash
+# project scope, checked into your repo
+mkdir -p .claude/skills
+cp -r /path/to/callkaro-skills/skills/* .claude/skills/
+```
+
+Restart Claude Code after copying. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. Claude Code reads `SKILL.md` frontmatter (`name`, `description`) to auto trigger, so keep folder names and files as is.
+
+Update later with `git pull` in the clone and copy again.
+
+### Other harnesses
+
+- Codex / Cursor / Windsurf / generic agents: copy the `skills/` folder into your project (e.g. `./skills/` or `./.agent/skills/`) and point the agent at the matching `SKILL.md`. The files are plain markdown with curl and payload examples, no build step needed.
+- Plugin style loaders: if your harness supports skill plugins, register each folder under `skills/` as one skill. Entry file is always `SKILL.md`.
+- Manual use: open the skill file for your task and follow it. Example: to place a call, open `callkaro-calls-api` and use the outbound curl with your `X-API-KEY`.
+
 ## How to use
 
-Copy the `skills` folder into your project or point your agent at it. Pick the skill that matches your task. Each SKILL.md has the endpoints, payloads, and gotchas inline so you do not need to hunt through docs.
-
-Example: to place a call, open `callkaro-calls-api` and use the outbound curl with your `X-API-KEY`.
+Pick the skill that matches your task. Each SKILL.md has the endpoints, payloads, and gotchas inline so you do not need to hunt through docs.
 
 ## Sources
 

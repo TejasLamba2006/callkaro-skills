@@ -27,6 +27,30 @@ This repo is a Claude Code plugin marketplace. One plugin, seven skills.
 
 Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all seven skills, so updates come through `/plugin update`.
 
+### npx skills CLI (any harness)
+
+Works with Claude Code, Cursor, Codex, Windsurf, and other supported agents. Run in your project dir:
+
+```bash
+npx skills add TejasLamba2006/callkaro-skills
+```
+
+Variants:
+
+```bash
+npx skills add TejasLamba2006/callkaro-skills -g                             # global, all projects
+npx skills add TejasLamba2006/callkaro-skills -s callkaro-calls-api -g    # one skill only
+npx skills add TejasLamba2006/callkaro-skills --all                       # all skills, all agents, no prompts
+```
+
+Day to day:
+
+```bash
+npx skills list                                                           # what is installed
+npx skills use TejasLamba2006/callkaro-skills@callkaro-calls-api          # try one without installing
+npx skills update                                                         # pull latest
+```
+
 ### Manual copy (any agent)
 
 If your harness does not support plugins, copy the folders directly:

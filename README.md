@@ -16,9 +16,20 @@ I put these together after clicking through the dashboard and reading the docs e
 
 ## Install
 
-### Claude Code
+### Claude Code plugin (recommended)
 
-Pick one scope:
+This repo is a Claude Code plugin marketplace. One plugin, seven skills.
+
+```
+/plugin marketplace add TejasLamba2006/callkaro-skills
+/plugin install callkaro-skills@callkaro
+```
+
+Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all seven skills, so updates come through `/plugin update`.
+
+### Manual copy (any agent)
+
+If your harness does not support plugins, copy the folders directly:
 
 ```bash
 # user scope, works in every project
@@ -32,8 +43,6 @@ cp -r /tmp/callkaro-skills/skills/* ~/.claude/skills/
 mkdir -p .claude/skills
 cp -r /path/to/callkaro-skills/skills/* .claude/skills/
 ```
-
-Restart Claude Code after copying. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. Claude Code reads `SKILL.md` frontmatter (`name`, `description`) to auto trigger, so keep folder names and files as is.
 
 Update later with `git pull` in the clone and copy again.
 

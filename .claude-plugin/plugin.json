@@ -1,1 +1,29 @@
-{"author": {"name": "TejasLamba2006", "url": "https://github.com/TejasLamba2006"}, "description": "Agent skills for CallKaro AI: voice and chat agents, calls API, webhooks, WhatsApp, widget, CRM links, daily ops.", "keywords": ["callkaro", "voice-agents", "whatsapp", "calls-api", "webhooks", "skills"], "license": "MIT", "name": "callkaro-skills", "repository": "https://github.com/TejasLamba2006/callkaro-skills", "skills": ["./skills/callkaro-voice-agents/", "./skills/callkaro-chat-agents/", "./skills/callkaro-calls-api/", "./skills/callkaro-webhooks/", "./skills/callkaro-whatsapp/", "./skills/callkaro-widget-integrations/", "./skills/callkaro-qa-ops/"], "version": "1.0.0"}
+{
+  "author": {
+    "name": "TejasLamba2006",
+    "url": "https://github.com/TejasLamba2006"
+  },
+  "description": "Agent skills for CallKaro AI: voice and chat agents, calls API, webhooks, WhatsApp, widget, CRM links, daily ops.",
+  "keywords": [
+    "callkaro",
+    "voice-agents",
+    "whatsapp",
+    "calls-api",
+    "webhooks",
+    "skills"
+  ],
+  "license": "MIT",
+  "name": "callkaro-skills",
+  "repository": "https://github.com/TejasLamba2006/callkaro-skills",
+  "skills": [
+    "./skills/callkaro-voice-agents/",
+    "./skills/callkaro-chat-agents/",
+    "./skills/callkaro-calls-api/",
+    "./skills/callkaro-webhooks/",
+    "./skills/callkaro-whatsapp/",
+    "./skills/callkaro-widget-integrations/",
+    "./skills/callkaro-qa-ops/",
+    "./skills/callkaro-qa-grader/"
+  ],
+  "version": "1.0.0"
+}

@@ -47,3 +47,8 @@ Usage based: pay credits used, all models and voices open. Per minute Pulse: fix
 - Audit date pages show two inputs for one date, trust the picker value.
 - Icon buttons lack labels, confirm action by URL change not icon.
 - Recharge depends on PayU Bolt, if CORB blocks it the button silently fails.
+
+## Sim honesty
+
+- Sims run with empty metadata. Blank `{{vars}}` failures are harness artifacts, not prompt bugs. Require an explicit empty-metadata fallback instruction (ask once / accept sim values). Sim transcripts test logic only; live calls prove the metadata path.
+- Sim auto-grading can fail platform-side ("Failed to run LLM analysis"). Judge transcripts by hand until it is fixed.

@@ -87,3 +87,15 @@ Extract Customer Name, Email, Interested Product, Appointment Date. Types: Text,
 ## Key configs
 
 Call initiation: user speaks first, agent natural, or agent with custom message plus initial delay. Call termination: custom closing message ends the call. Call settings: Indian number format, auto reschedule, followup, background noise plus volume, noise cancellation (use Callkaro strategy, strength 1.00 to start), voicemail dynamic or custom, time limit, disconnect timeout. TTS caching: full response (lowest latency), sentence level (balance), none (flexible). Silence, endpointing, interruption, preemptive synthesis, language switching per docs.
+
+## Live lessons (OTP verification agent, Sept 2026)
+
+Proven on live calls, not just sims:
+
+- Dashboard Test Call dialog builds its variable fields from `{{vars}}` in prompt text only. Every metadata key the agent needs at test time must appear literally in the prompt, even if only a function reads it. Removing `{{OTP}}` from wording silently drops the OTP input.
+- Function-first for digit compare. Read-back confirm, length judging, match judging all broke in the model and all worked first try in code. Script the ask line with exact quotable wording ("The 6 digit SMS code was sent..."), name the real cases (4 vs 6 digit), and ban the vague form. Abstract instructions ("say N digit") get paraphrased into mush.
+- Bare "hello"/"hi"/silence is not a yes. Any flow that advances on confirmation must define contentless input: re-ask the SAME question once, then close. Tune `silence_count`, `silence_wait`, endpointing delay, and `interrupt_min_words` so pauses stop counting as answers.
+- Refusal closes are speak-then-end. "End immediately" gets silent hangups. Template: exact closing line first, then `end_call`, in that order, always.
+- Check Pre Format Variables on every version. DigitByDigit only for digit fields, passthrough for names. One stale Custom rule spelled every plain name letter by letter.
+- Custom in-call functions cannot see call metadata via `ctx` on this platform (proven over live calls). Expected values must arrive as function args. Normalize both sides of any digit compare: the platform delivers codes as words ("four eight two...") through DigitByDigit preformat, so raw digit-strip turns them into empty string. Reference pattern: word-plus-range normalizer handling digits, number words, doubles/triples, and ranges ("1 to 6", "start from 1 ended at 6").
+- Partial digit input ("123" then "456") must stitch across turns in `userdata`, not fail. Fresh full-length input replaces the buffer (re-read, not continuation). Short input appends without burning an attempt.

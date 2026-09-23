@@ -23,7 +23,8 @@
     "./skills/callkaro-whatsapp/",
     "./skills/callkaro-widget-integrations/",
     "./skills/callkaro-qa-ops/",
-    "./skills/callkaro-qa-grader/"
+    "./skills/callkaro-qa-grader/",
+    "./skills/callkaro-prompt-style/"
   ],
   "version": "1.0.0"
 }

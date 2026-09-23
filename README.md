@@ -13,19 +13,21 @@ I put these together after clicking through the dashboard and reading the docs e
 - `callkaro-whatsapp` for number connect, templates, campaigns, inbox
 - `callkaro-widget-integrations` for website widget and CRM links like HubSpot
 - `callkaro-qa-ops` for audits, feedback, analytics, pricing, daily ops
+- `callkaro-qa-grader` for grading QA test calls by fault layer and disposition
+- `callkaro-prompt-style` for the plain-text house style: de-markdown, banners, SSML pauses, custom begin message, placeholder-safe rewrites
 
 ## Install
 
 ### Claude Code plugin (recommended)
 
-This repo is a Claude Code plugin marketplace. One plugin, seven skills.
+This repo is a Claude Code plugin marketplace. One plugin, nine skills.
 
 ```
 /plugin marketplace add TejasLamba2006/callkaro-skills
 /plugin install callkaro-skills@callkaro
 ```
 
-Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all seven skills, so updates come through `/plugin update`.
+Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all nine skills, so updates come through `/plugin update`.
 
 ### npx skills CLI (any harness)
 

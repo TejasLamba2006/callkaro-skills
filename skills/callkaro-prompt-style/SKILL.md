@@ -44,7 +44,7 @@ Do NOT use any of these in prompts:
 - emojis (🔴 ⚠ ✅ 🚨) — replace with leading words: `CRITICAL:`, `IMPORTANT:`, `NOTE:`
 - markdown numbered nesting beyond simple `1.` `2.` lists
 
-Why, with numbers from the real conversion: stripping markdown, dead heading weight, and one out-of-scope capability took a shared base prompt from 9,787 to 2,486 tokens (cl100k, −75%). The platform docs also say it outright: no emojis or special characters in prompts — they break live calls.
+Why, with numbers from the real conversion: stripping markdown, dead heading weight, and one out-of-scope capability took a shared base prompt from 9,787 to 2,486 tokens (cl100k, −75%). Emoji and symbol risk is also just real-world TTS behavior, not a platform rule: emoji reads as nothing or as a name, never as the intended tone. (Correction, Oct 2026: an earlier version of this skill cited "the platform docs say no emojis, they break live calls" — that was the public `callkaro-voice-agents` skill's line, not the official `Mail-Daddy-AI/callkaro-skills` docs, which do not mention it. Treat the behavior as a TTS consequence, not a documented constraint.)
 
 Keep the docs' prompt rules while you are in there: one rule said once, literal instructions ("ask for the 6 digit pincode" not "handle location"), no maths in prompt (precompute and pass facts), and state when to do nothing.
 
@@ -75,27 +75,25 @@ decisions, simulation annotations, function calls, or backend data.
 Related: the Omaxe real-estate agents open with a PRIORITY HIERARCHY block that resolves overlapping rules by explicit precedence (hard opt-out > pricing > primary flow). Use the same shape when rules genuinely conflict — a written precedence list beats hoping the model infers one.
 - Language-specific quirks belong in Section-style language config (e.g. Hindi: always "रहाहूँ" with no space, names in Devanagari, Hinglish register).
 
-## Pauses: SSML break tags
+## Pauses: SSML tags (UNVERIFIED — read this before using them)
 
-The platform TTS honors mid-response SSML. Reference pause table from production prompts:
+The platform TTS appears to honor inline SSML, and live production agents in this account use it. But the official CallKaro skills repo (Mail-Daddy-AI/callkaro-skills, 414K chars, 44 files) contains **zero** mentions of `<break>`, `<prosody>`, `ssml`, or `<emphasis>` anywhere — not in the voice/transcriber guide, not in the 76K `AGENT-VERSION-REFERENCE.md` field list. So treat this as observed-in-the-wild, not documented-and-supported.
 
-- `<break time="0.2s"/>` between two short clauses
-- `<break time="0.3s"/>` after a price, name, or specific data point
-- `<break time="0.5s"/>` after a complete information block
-- `<break time="0.7s"/>` after a high-impact statement
-- `<emphasis level="moderate">text</emphasis>` (or `strong`) — max 1–2 per response
+What live agents in this account actually contain:
 
-Rules: tags are mid-response only. NEVER end a response with a break or emphasis tag — the final sentence (especially a closing phrase) must be plain text. Custom longer breaks (e.g. `<break time="3s"/>`) work in the custom begin message; verify by ear on the first call, since only 0.2–0.7s is documented for model responses.
+- `<break time="0.2s"/>` … `0.3s`, `0.5s`, `0.7s` in one agent's internal pause table (clause boundaries, after a price/name, after an info block, after a high-impact line)
+- `<prosody rate="85%" pitch="-20Hz" volume="soft">…</prosody>` around whole sentences for a softer, slower, lower register
+- `<prosody rate="50%" pitch="-50Hz" volume="soft">hello—</prosody>` as an entire custom begin message — a soft, drawn-out opener
+- One Omaxe rule: "wrap only the perspective in prosody; in that turn ask no question, offer no callback" — prosody marking an advisory aside, not decorating everything
 
-### Prosody tags (rate / pitch / volume), confirmed in production
+Rules regardless of support level:
 
-Beyond `<emphasis>`, the platform honors full prosody spans. Real usage found in the account (Omaxe estate agents):
+- Never end a response with a break/emphasis/prosody tag. The final sentence — especially a closing phrase — must be plain text.
+- If a tag is spoken as words ("break time three s"), the TTS doesn't support it: remove it and get the pause from sentence structure or `initial_pause_outbound` instead.
+- Budget 1 span per turn max. More is noise, and unsupported tags are read aloud.
+- This agent's own live call test (Oct 2026) had a `<break time="3s"/>` inside the custom begin message with no evidence of it being spoken — but the tester has not confirmed by ear, so even that is unverified.
 
-- `<prosody rate="85%" pitch="-20Hz" volume="soft">...` — wrap a whole sentence or a perspective shift to sound slower, lower, softer
-- `<prosody rate="50%" pitch="-50Hz" volume="soft">hello—</prosody>` — an entire customMsg is just a prosody-wrapped fragment (a soft, drawn-out opener)
-- One Omaxe rule: "wrap only the perspective in prosody; in that turn ask no question, offer no callback" — i.e. use prosody to mark an advisory aside, not to decorate everything
-
-Use sparingly: 1 span per turn max, on the sentence that should carry the tone shift. Empirically prosody is more expressive than emphasis for Hindi, and the rate/pitch values are honored rather than spoken.
+**Verify before shipping:** run the agent's Test Audio (dashboard) or a real test call and listen for the tag being read aloud. If it is read, the tag is unsupported on that provider.
 
 ## Custom begin message (speakfirst)
 

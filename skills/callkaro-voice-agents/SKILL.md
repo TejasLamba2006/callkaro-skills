@@ -46,6 +46,10 @@ Post-call extraction recommended model: `callkaro/krishna-2.5`.
 
 Tune speed, stability, similarity boost, style per provider. No emojis or special chars in prompts, they break live calls.
 
+**Always set `secondary_voice_configuration` from a DIFFERENT provider** (Sarvam `bulbul:v3` is the standard partner), so a single provider outage can't take both voices down — the same reasoning as the LLM primary/secondary pair. Realtime LLM models (`*realtime*`) force `voice_provider: "Open AI"`.
+
+**Default voice gender when the script doesn't state one:** masculine for `hi en kn gu ml`, feminine for `mr ta te bn`. And match whatever persona gender the prompt declares — Hindi verb conjugation drifts if the voice and the stated gender disagree.
+
 ## Transcriber
 
 - Deepgram: best English accuracy, keywords support.
@@ -73,6 +77,26 @@ Context says what kind of call this is and which forms matter; keywords are only
 
 **Provider/language shapes seen in production** (from a 301-agent account survey): Soniox with `["hi"]`, `["en","hi"]`, or `["hi","en"]`; Azure with `["hi-IN"]` or `["en-IN"]`; Deepgram `nova-3` with `hi` and language detection on/off; Sarvam `saaras:v4` with `hi-IN`. Deepgram is the most common choice for English-dominant agents, Soniox for Hindi-first ones.
 
+### Never invent catalogue values — discover them
+
+The official CallKaro skills repo (Mail-Daddy-AI/callkaro-skills) is emphatic about this and it matters: a remembered voice id goes stale or belongs to a different provider. Discover from the CLI:
+
+```bash
+ck voices --providers                          # every provider + models
+ck voices --provider cartesia --fields         # only the keys that provider takes
+ck voices --provider sarvam --model bulbul:v3 --language hi-IN --gender female
+ck transcribers                                # every provider/model + languages
+ck transcribers --provider gnani --fields
+```
+
+`--fields` is the fastest way to write a correct config: it prints only the keys that provider actually uses, so you never write one it ignores.
+
+Providers that exist but rarely show up in exports: **Gnani** (`en-IN,hi-IN`), **Speechify** (locale-scoped — requires `--language`), **Murf**, Deepgram, OpenAI. Don't conclude a provider doesn't exist because no sampled agent uses it.
+
+### The three-language consistency rule
+
+`default_agent_language`, `voice_configuration.voice_language`, and `transcriber.transcriber_language` must tell the same story, each in **its own provider's format** — never reshape `"hi"` ↔ `"hi-IN"` ↔ `["hi-IN"]` between them. Mismatches produce an agent that speaks one language and transcribes another, which looks like a model problem and isn't. If `language_switching` is on, the transcriber must cover every language in `switchableLanguages`, which means an array-language provider (Soniox or Azure).
+
 ## Versions and A/B tests
 
 One agent, many versions (language, city, goal). Run standard split by percent, or advanced rules on `metadata`:
@@ -95,6 +119,12 @@ Rules run top down, first match wins. Text compare is case insensitive. Missing 
 - Post-call: save outcomes, update CRM.
 
 Custom functions come in Basic (one API hit) and Advanced (full logic). Auth via `x_secrets` reference.
+
+### Function types: the full set
+
+Beyond pre-call / in-call / post-call, the platform has **`on_connected`** — a function that runs automatically once after the call connects (or once on entering its capability/node), for side effects the model shouldn't have to remember to trigger. Top-level copy runs at connect; a capability- or node-scoped copy runs on entry. It takes Python `async source_code` like the other advanced functions.
+
+Pattern worth knowing: things you'd otherwise write as "LLM must call this immediately after X" (marking a cohort delivered, recording a state transition, firing a webhook on a specific milestone) are often better as `on_connected` or a deterministic pre-call, because the LLM is the least reliable party in the loop.
 
 ### What the account actually uses (301-agent survey, 27 agents deep-exported)
 

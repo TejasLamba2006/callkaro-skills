@@ -52,6 +52,27 @@ Keep the docs' prompt rules while you are in there: one rule said once, literal 
 
 - Numbers as words, never numerals: "five lakh thirty thousand rupees". Never the ₹ symbol — say "rupees".
 - No markdown, emojis, or special characters in anything meant to be spoken.
+
+### Output contract block (highest-priority section, proven pattern)
+
+Opening a base prompt with a hard output contract is the single most effective anti-narration defense. Two production shapes seen in the account (auto service, Payoneer), both placed before everything else and worded as "read before every reply":
+
+```
+§0 OUTPUT CONTRACT — READ BEFORE EVERY REPLY
+Everything you output is spoken aloud on a live phone call. Therefore:
+- Output ONLY the words the customer should hear. Nothing else.
+- NEVER speak stage directions, labels, routing decisions, internal state names,
+  function names, placeholders, or analysis.
+```
+
+```
+# SPEECH-ONLY CUSTOMER-FACING OUTPUT
+Generate only the final natural customer-facing response intended to be spoken.
+Do not output analysis, reasoning, internal state names, labels, routing
+decisions, simulation annotations, function calls, or backend data.
+```
+
+Related: the Omaxe real-estate agents open with a PRIORITY HIERARCHY block that resolves overlapping rules by explicit precedence (hard opt-out > pricing > primary flow). Use the same shape when rules genuinely conflict — a written precedence list beats hoping the model infers one.
 - Language-specific quirks belong in Section-style language config (e.g. Hindi: always "रहाहूँ" with no space, names in Devanagari, Hinglish register).
 
 ## Pauses: SSML break tags
@@ -65,6 +86,16 @@ The platform TTS honors mid-response SSML. Reference pause table from production
 - `<emphasis level="moderate">text</emphasis>` (or `strong`) — max 1–2 per response
 
 Rules: tags are mid-response only. NEVER end a response with a break or emphasis tag — the final sentence (especially a closing phrase) must be plain text. Custom longer breaks (e.g. `<break time="3s"/>`) work in the custom begin message; verify by ear on the first call, since only 0.2–0.7s is documented for model responses.
+
+### Prosody tags (rate / pitch / volume), confirmed in production
+
+Beyond `<emphasis>`, the platform honors full prosody spans. Real usage found in the account (Omaxe estate agents):
+
+- `<prosody rate="85%" pitch="-20Hz" volume="soft">...` — wrap a whole sentence or a perspective shift to sound slower, lower, softer
+- `<prosody rate="50%" pitch="-50Hz" volume="soft">hello—</prosody>` — an entire customMsg is just a prosody-wrapped fragment (a soft, drawn-out opener)
+- One Omaxe rule: "wrap only the perspective in prosody; in that turn ask no question, offer no callback" — i.e. use prosody to mark an advisory aside, not to decorate everything
+
+Use sparingly: 1 span per turn max, on the sentence that should carry the tone shift. Empirically prosody is more expressive than emphasis for Hindi, and the rate/pitch values are honored rather than spoken.
 
 ## Custom begin message (speakfirst)
 

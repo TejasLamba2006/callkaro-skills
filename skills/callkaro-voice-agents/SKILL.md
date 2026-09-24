@@ -57,6 +57,22 @@ Tune speed, stability, similarity boost, style per provider. No emojis or specia
 
 Add brand names and short forms as Keywords so they transcribe right.
 
+**Structured context beats keyword blobs (observed across ~30 production agents).** Soniox accepts `transcriber_general_context` (key/value pairs) and `transcriber_text_context` (free prose), separate from `keywords`. Real usage in the account:
+
+```
+transcriber_general_context: [
+  {"key": "role", "value": "Female outbound debt-reminder representative for parsaar.co"},
+  {"key": "call_purpose", "value": "Verify customer identity before giving any factual payment reminder"},
+  {"key": "expected_languages", "value": "Hindi, Hinglish"}
+]
+transcriber_text_context: "Lokal Matrimony Hindi/Hinglish verification calls. Capture ages,
+  years, dates, and heights as digits. Do not drop year digits."
+```
+
+Context says what kind of call this is and which forms matter; keywords are only for proper nouns and short forms ("Omaxe Estate", "Chandni Chowk", brand names, model names). Guidelines on keyword count vary by provider — keep the list short, put the rest in context.
+
+**Provider/language shapes seen in production** (from a 301-agent account survey): Soniox with `["hi"]`, `["en","hi"]`, or `["hi","en"]`; Azure with `["hi-IN"]` or `["en-IN"]`; Deepgram `nova-3` with `hi` and language detection on/off; Sarvam `saaras:v4` with `hi-IN`. Deepgram is the most common choice for English-dominant agents, Soniox for Hindi-first ones.
+
 ## Versions and A/B tests
 
 One agent, many versions (language, city, goal). Run standard split by percent, or advanced rules on `metadata`:
@@ -68,6 +84,10 @@ One agent, many versions (language, city, goal). Run standard split by percent, 
 
 Rules run top down, first match wins. Text compare is case insensitive. Missing metadata matches `!=` but not `==`. A rule returns a Version directly, or a Language (then standard split, published version, default config in that order). Splits inside a rule must total 100.
 
+**Always end the rule chain with a trailing `else`.** City/state rules are string equality on whatever key the CRM sends (`lead_information_city` in the Spinny account). Without a final else, leads whose city key is missing or spelled differently fall through to whatever the platform default is — not necessarily your base version. Missing metadata matches `!=` but never `==`, so an equality-based chain silently drops those leads.
+
+**City-list maintenance is manual and drifts.** In the 301-agent account survey, exactly one agent family had geography rules (2 branches: 7 Punjab cities, Delhi NCR) while six other language versions had none — routing for those came from per-row `x_language` on batch CSVs instead. Plan for both: batch `x_language` when the upstream system knows the language, advanced A/B rules for city-driven accents, and a trailing else so nothing is unrouted.
+
 ## Functions
 
 - Pre-call: fetch data before dialing.
@@ -75,6 +95,16 @@ Rules run top down, first match wins. Text compare is case insensitive. Missing 
 - Post-call: save outcomes, update CRM.
 
 Custom functions come in Basic (one API hit) and Advanced (full logic). Auth via `x_secrets` reference.
+
+### What the account actually uses (301-agent survey, 27 agents deep-exported)
+
+Function type frequency: `custom_post_call` 20, `custom_pre_call` 19, `custom_in_call` 15, `end` 11 (+7 capability-scoped), `transfer` 6, `keep_call_on_hold` 3, plus WhatsApp-specific types (`whatsapp_post_call`, `send_to_whatsapp`).
+
+Recurring in-call function names across unrelated businesses — these are the patterns worth copying: `end_call` (by far the most common, 18 uses), `transfer_call` / `transfer_to_human_support`, `verify_otp`, `confirm_pincode` / `update_pincode`, `calculate_hold_deduction`, `submit_verification_outcome`, and a family of `route_*` functions (`route_escalation_safety`, `route_escalation_security`, `route_dnd_delete_request`, `route_duplicate_profile`, `route_fake_suspected`, `route_profile_correction`).
+
+The `route_*` shape is worth stealing for any agent with compliance or QA branching: one small deterministic function per branch condition, each returning a decision the prompt then acts on. It keeps judgment in code and out of the model's improvisation, and it is auditable per branch — exactly like the pattern used to make OCB eligibility deterministic instead of asking the LLM to do the math.
+
+Where negotiation-style agents converge: `calculate_next_negotiation_price` is the standard name for the one-and-only price-increase function, always paired with a `mark_*_delivered` bookkeeping function so the model can never invent a second price step.
 
 ## Knowledge bases
 
@@ -84,9 +114,27 @@ Attach large reference material that will not fit in the prompt. Add a Say While
 
 Extract Customer Name, Email, Interested Product, Appointment Date. Types: Text, Selector (fixed list), Boolean, Number. Set Conversion Reason (example: Demo Booked) and Call Drop-off Reasons. Use different strategy models per call length segment, skip analysis for very short calls.
 
+**Breadth varies enormously by agent purpose** (301-agent survey): 0–5 vars for reminder/notification bots, 11–19 for support and sales qualifiers, 25–40 for negotiation agents, and 96 on one heavy matrimony verification agent doing profile QC. Match the list to what the business actually reports on — a 40-var negotiation agent and a 5-var reminder bot are both correct, for different reasons. Anything at 0 means the agent reports nothing, which is only right for pure fire-and-forget notifications.
+
 ## Key configs
 
 Call initiation: user speaks first, agent natural, or agent with custom message plus initial delay. Call termination: custom closing message ends the call. Call settings: Indian number format, auto reschedule, followup, background noise plus volume, noise cancellation (use Callkaro strategy, strength 1.00 to start), voicemail dynamic or custom, time limit, disconnect timeout. TTS caching: full response (lowest latency), sentence level (balance), none (flexible). Silence, endpointing, interruption, preemptive synthesis, language switching per docs.
+
+### Time limit is a design input, not a default
+
+`time_limit` (seconds) in the 301-agent account ranged from 180s (a one-shot opener) to 10000s (a long dealer-negotiation bot), with most qualifiers landing 300–900s. Set it from your script length, not from a template: a 5-minute call does not need 1500s of headroom, and a long negotiation bot that inherits 300s gets cut off mid-flow. Size it as (longest realistic path × turns per beat) with slack, and note that `switch_capability` chains (start → negotiation → ocb → end) each continue the same clock.
+
+### Silence settings: three knobs, not one
+
+- `silence_wait` (seconds before a silence prompt fires) — most agents in the account run 4–8s; long negotiation bots sit at 6–8s
+- `silence_count` (how many consecutive silent gaps before prompting) — 2 is the common floor, 3–5 for patient/browsing flows
+- `silence_mode` — `custom` (your own `silence_prompts`) vs `dynamic` (platform free-generates an unscripted line) vs `ignore`
+
+Prefer `custom` with two fixed, on-brand lines. `dynamic` generates plausible-sounding but off-script filler that lands before your real greeting and reads as a double opener — this is a real, confirmed production failure mode. Also remember the related contentless-input trap: a bare "haan"/silence is not a yes, so silence_count and the prompt text must agree with your "re-ask once, then advance" rules.
+
+### TTS caching strategy, by call shape
+
+`caching_strategy` in the account split by flow length: `response` (cache the whole LLM response) dominated long negotiation and qualification agents, `sentence` appeared on mid-length reminder flows, `none` on short/opener-heavy or highly dynamic agents. Full-response caching is lowest latency but wrong when the same prompt text can resolve to different spoken content (any prompt that embeds a changing price or variable).
 
 ## Live lessons (OTP verification agent, Sept 2026)
 
@@ -99,3 +147,14 @@ Proven on live calls, not just sims:
 - Check Pre Format Variables on every version. DigitByDigit only for digit fields, passthrough for names. One stale Custom rule spelled every plain name letter by letter.
 - Custom in-call functions cannot see call metadata via `ctx` on this platform (proven over live calls). Expected values must arrive as function args. Normalize both sides of any digit compare: the platform delivers codes as words ("four eight two...") through DigitByDigit preformat, so raw digit-strip turns them into empty string. Reference pattern: word-plus-range normalizer handling digits, number words, doubles/triples, and ranges ("1 to 6", "start from 1 ended at 6").
 - Partial digit input ("123" then "456") must stitch across turns in `userdata`, not fail. Fresh full-length input replaces the buffer (re-read, not continuation). Short input appends without burning an attempt.
+
+## Live lessons (auction negotiation agent, multi-prompt, Sept 2026)
+
+From building and live-testing a capability-mode agent over ~10 test calls. Read the whole call log before diagnosing — the timeline answers questions the transcript cannot:
+
+- **A custom begin message does not hand off to the model.** With speakfirst customMsg, the platform speaks that text, then the model waits for customer speech before its first turn. If the opening is supposed to be a sequence (intro, pause, identity question), all of it belongs inside customMsg — the capability prompt's first turn must be written as "handle the customer's reply to the opening".
+- **Injected variables must be re-exercised per capability.** Because the base prompt merges into every capability at runtime, each capability's pre-call functions run on entry; a function that reads state another function writes can see stale or missing values depending on which capability fired last. Log the key facts per function and check the real runtime prompt, not the source, when a value looks wrong on a live call.
+- **Scripted "ask the customer X" questions need a "already answered? never ask again" clause.** A literal line in a prompt ("Then ask where the price came from") gets spoken on every entry to that branch, including after the customer already answered. The source question became a loop on a real call; the fix was an explicit once-per-call cap plus a branch for "the source was our own prior quote".
+- **Check `chat_history[].metrics.llm_metadata.model_name` before trusting any transcript.** A platform-wide degraded-mode event sent multiple agents to livekit's generic `FallbackAdapter` even though the agent was correctly configured for arjuna-2.5 — off-script phrasing, missed tool calls, restarted sentences, and a leaked control token all traced back to that, not to prompt bugs. Discard fallback-tainted calls before drawing conclusions.
+- **"Never calculate yourself, call the function" is not enough for pricing steps.** A one-call-per-call guard plus a re-entrancy guard worked, but the model still looped a "would you reconsider?" push line instead of routing onward. Scripts need explicit advance-and-exit conditions, not only prohibitions.
+- **End the call through the end capability, not by speaking a closing phrase from wherever you are.** On a real call the closing phrase came directly from the negotiation capability with no end-capability switch, skipping the callback and wrap-up steps that lived in the end checklist. State the switch explicitly wherever a refusal or "call me later" appears in any capability.

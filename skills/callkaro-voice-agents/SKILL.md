@@ -175,6 +175,12 @@ Proven on live calls, not just sims:
 - Bare "hello"/"hi"/silence is not a yes. Any flow that advances on confirmation must define contentless input: re-ask the SAME question once, then close. Tune `silence_count`, `silence_wait`, endpointing delay, and `interrupt_min_words` so pauses stop counting as answers.
 - Refusal closes are speak-then-end. "End immediately" gets silent hangups. Template: exact closing line first, then `end_call`, in that order, always.
 - Check Pre Format Variables on every version. DigitByDigit only for digit fields, passthrough for names. One stale Custom rule spelled every plain name letter by letter.
+- **Pre Format Variables (`preFormatVariables` / `variableSource`) format `{{vars}}` in prompt text only, never inside function code.** A pre-call function that reads `metadata["lead_information_customer_name"]` gets the raw Latin value even with `Latin:Devanagari` set, so a greeting it builds says "NITHIN जी" instead of "नितिन जी". Format inside the function with the platform helper, and keep any detection (company tokens etc.) on the raw value:
+  ```python
+  from utils.format_utils import latin_to_devanagari   # import inside the function body
+  spoken_name = latin_to_devanagari(first_name) or first_name
+  ```
+  Wrap it in try/except so a missing helper falls back to the Latin name instead of failing the call (a pre-call exception = `PRE_CALL_FN_FAILED`). Keep the preformat entries too: they still cover every `{{var}}` the prompt reads directly. Diagnose from the call log: the pre-call's own log line shows the name it actually saw.
 - Custom in-call functions cannot see call metadata via `ctx` on this platform (proven over live calls). Expected values must arrive as function args. Normalize both sides of any digit compare: the platform delivers codes as words ("four eight two...") through DigitByDigit preformat, so raw digit-strip turns them into empty string. Reference pattern: word-plus-range normalizer handling digits, number words, doubles/triples, and ranges ("1 to 6", "start from 1 ended at 6").
 - Partial digit input ("123" then "456") must stitch across turns in `userdata`, not fail. Fresh full-length input replaces the buffer (re-read, not continuation). Short input appends without burning an attempt.
 

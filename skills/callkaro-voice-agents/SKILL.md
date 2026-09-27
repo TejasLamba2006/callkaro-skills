@@ -182,6 +182,8 @@ Proven on live calls, not just sims:
   ```
   Wrap it in try/except so a missing helper falls back to the Latin name instead of failing the call (a pre-call exception = `PRE_CALL_FN_FAILED`). Keep the preformat entries too: they still cover every `{{var}}` the prompt reads directly. Diagnose from the call log: the pre-call's own log line shows the name it actually saw.
 - Custom in-call functions cannot see call metadata via `ctx` on this platform (proven over live calls). Expected values must arrive as function args. Normalize both sides of any digit compare: the platform delivers codes as words ("four eight two...") through DigitByDigit preformat, so raw digit-strip turns them into empty string. Reference pattern: word-plus-range normalizer handling digits, number words, doubles/triples, and ranges ("1 to 6", "start from 1 ended at 6").
+
+- **Hindi TTS text rules (proven on arjuna + Sarvam TTS, Sept 2026).** (a) Put a space before punctuation that follows "है"/"हैं" ("valid है ।", "सही है ?"): glued "है।"/"है?" gets mis-spoken. Enforce it in every script string with a regex (`(है|हैं)([.?!।])` → ` `) and state it as an output rule for generated text. (b) Never let a year or count reach speech as digits: "2023 मॉडल" is read "दो शून्य दो तीन". Emit a separate `*_words` placeholder built in code ("दो हज़ार तेईस") for spoken lines, and keep the digit placeholder only for comparison lines (`≥ 5`, `≥ 8,000`).
 - Partial digit input ("123" then "456") must stitch across turns in `userdata`, not fail. Fresh full-length input replaces the buffer (re-read, not continuation). Short input appends without burning an attempt.
 
 ## Live lessons (auction negotiation agent, multi-prompt, Sept 2026)

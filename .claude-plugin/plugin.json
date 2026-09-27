@@ -24,7 +24,8 @@
     "./skills/callkaro-widget-integrations/",
     "./skills/callkaro-qa-ops/",
     "./skills/callkaro-qa-grader/",
-    "./skills/callkaro-prompt-style/"
+    "./skills/callkaro-prompt-style/",
+    "./skills/callkaro-conversational-voice/"
   ],
   "version": "1.0.0"
 }

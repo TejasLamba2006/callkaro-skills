@@ -17,6 +17,7 @@
   "repository": "https://github.com/TejasLamba2006/callkaro-skills",
   "skills": [
     "./skills/callkaro-voice-agents/",
+    "./skills/callkaro-cli/",
     "./skills/callkaro-chat-agents/",
     "./skills/callkaro-calls-api/",
     "./skills/callkaro-webhooks/",

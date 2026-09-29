@@ -7,6 +7,7 @@ I put these together after clicking through the dashboard and reading the docs e
 ## What is inside
 
 - `callkaro-voice-agents` for building voice agents, prompts, voices, transcribers, versions, functions, secrets, knowledge bases
+- `callkaro-cli` for driving everything from the terminal with `cku`: agents, calls, numbers, batches, simulations, analytics, and multi-account switching
 - `callkaro-chat-agents` for WhatsApp and Instagram chat agents
 - `callkaro-calls-api` for outbound calls, campaigns, schedules, history
 - `callkaro-webhooks` for realtime events like call ended and message status
@@ -21,7 +22,7 @@ I put these together after clicking through the dashboard and reading the docs e
 
 ### Claude Code plugin (recommended)
 
-This repo is a Claude Code plugin marketplace. One plugin, ten skills.
+This repo is a Claude Code plugin marketplace. One plugin, eleven skills.
 
 ```
 /plugin marketplace add TejasLamba2006/callkaro-skills

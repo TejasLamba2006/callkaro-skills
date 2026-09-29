@@ -1,0 +1,343 @@
+---
+name: callkaro-cli
+description: Operate CallKaro voice and chat agents, calls, numbers, batches, simulations and analytics through the cku command-line tool. Use for ANY CallKaro task done from a terminal or a script — listing or editing agents, publishing versions, A/B tests, placing calls, reading call logs, managing phone numbers, batch campaigns, audits, or switching between accounts. Prefer this over raw REST when the CLI covers the job.
+---
+
+# CallKaro CLI (`cku`)
+
+Terminal interface to CallKaro. One binary, two names in the wild:
+
+- **`cku`** — the unofficial fork (`callkaro-cli-unofficial`). Install this.
+- **`ck`** — the official CLI (`@callkaro-official/cli`).
+
+They are **separate programs that share nothing**. Both are usually installed.
+`cku` talks to the same backend and the same accounts, so all commands below
+work identically on either — substitute `ck` for `cku` if that is what is
+available. Check with `cku --version`.
+
+## Before anything else
+
+```bash
+cku whoami          # am I logged in, and as whom?
+cku config          # endpoints, account in use, where that choice came from
+```
+
+If not logged in: `cku login` (opens a browser; no password in the terminal).
+
+**Never invent ids.** Every id must come from a `list` call first. Ids are
+24-character hex strings; the backend rejects anything else with
+`Invalid id: not a valid id`.
+
+**Prefer `--json` whenever you intend to parse the output.** Human tables are
+for people; they are not a stable interface.
+
+## Which account am I acting as?
+
+This is the first thing to check when something looks wrong — acting on the
+wrong account is the most damaging mistake available here.
+
+```bash
+cku accounts status
+```
+
+Reports the account in effect *and where the choice came from*:
+
+| Source | Meaning |
+|---|---|
+| `CK_ACCOUNT` | set in the environment for this invocation |
+| `.cku.json` | this folder is pinned to an account |
+| global default | no folder binding — the shared fallback |
+
+Resolution order:
+
+```
+CK_TOKEN  >  CK_ACCOUNT  >  ./.cku.json  >  ~/.config/callkaro-unofficial/active.json  >  none
+```
+
+### If you are working in a folder, bind it — do not switch globally
+
+```bash
+cku accounts bind <email>     # writes .cku.json here
+cku accounts unbind           # remove it
+```
+
+`.cku.json` contains only the account slug, no token, so it is safe to commit.
+A bound folder ignores the global default entirely.
+
+**This matters when several agents run at once.** Two agents in two folders both
+calling `cku accounts use <email>` will overwrite each other's selection, and
+whichever wrote last silently takes effect — one bot then starts operating on
+the other's account with no error. `cku accounts use` changes *global shared
+state*; `bind` is per-folder and cannot collide. Use `bind` unless you
+deliberately want the shared default to change.
+
+`CK_ACCOUNT=<email> cku whoami` overrides for a single command — useful in
+scripts, and the safest option when you cannot write to the folder.
+
+## Agents
+
+```bash
+cku agents list
+cku agents get <agentId>
+cku agents versions <agentId>
+```
+
+An agent has **agent-level** fields (name, phone numbers, which version is
+published) and **version-level** fields (prompt, model, voice, temperature).
+This distinction drives the most common error — see Updating below.
+
+```bash
+cku agents create --file agent.json          # quote-proof
+cku agents create '{"name":"My Agent"}'      # inline
+cku agents create @agent.json
+cku agents create < agent.json
+```
+
+`versionName` defaults to `v1`. The backend fills in the rest.
+
+### Updating — two rules that bite
+
+```bash
+cku agents update <agentId> --set '{"name":"New Name"}'
+cku agents update <agentId> --set '{"temperature":5}' --versions <versionId>
+```
+
+**Rule 1: version-level fields need `--versions`.** Without it the CLI errors
+and names the offending fields. Passing `--commit "<msg>"` on an agent-level
+update attaches the message to the agent's current version automatically.
+
+**Rule 2: partial objects are merged, not replaced — on `cku` only.** The
+backend replaces `voice_configuration`, `transcriber`, and seven other objects
+*wholesale*. A partial update would drop every key you did not name, and the
+agent would be left with no voice. `cku` merges against the current value first.
+On the official `ck`, **it does not** — so with `ck`, always send the complete
+object. When a voice or transcriber change "silently does nothing", this is why.
+
+```bash
+# correct on both CLIs — send the whole object
+cku agents update <id> --set '{"voice_configuration":{
+  "voice_provider":"Eleven Labs","voice_model":"eleven_flash_v2_5",
+  "voice_id":"abc","voice_language":"en","voice_speed":1.1}}'
+```
+
+Values are validated before sending: enum fields list their allowed values,
+and a voice/transcriber model belonging to a *different* provider is rejected
+locally. Both mistakes otherwise persist silently and only show up as a broken
+call.
+
+### Version lifecycle
+
+```bash
+cku agents clone-version <id> --versions <src> --name v2 --prompt-type 1 --language hi
+cku agents publish <id> --versions <versionId>
+cku agents toggle-active <id> --versions <versionId>
+```
+
+`--prompt-type` is `0`–`3`; `--language` is one of `en hi kn ta te mr gu bn ml`.
+`clone-version --set` only accepts `transcriber`, `secondary_transcriber`,
+`voice_configuration`, `secondary_voice_configuration`, `silence_language`.
+
+### A/B testing
+
+```bash
+cku agents ab <id> --versions "<vid1>=60,<vid2>=40"   # ratios sum to 100
+cku agents ab <id> --disable
+cku agents ab-advanced <id> --show                    # inspect rules first
+cku agents ab-advanced <id> --rules @rules.json
+```
+
+Advanced A/B is an ordered `if`/`elseif`/`else` chain over call metadata.
+`returnType: "version"` pins a version; `"language"` overrides only the
+language. Rules run before ratio A/B, and only when the call does not pin a
+version. Read with `--show` before writing.
+
+### Phone numbers
+
+```bash
+cku agents set-inbound  <id> --number <numberId>
+cku agents set-outbound <id> --number <numberId>
+cku agents set-outbound <id> --clear
+```
+
+One inbound agent per number; the server returns 409 on conflict. An outbound
+number may be shared by several agents.
+
+## Calls
+
+```bash
+cku calls make --agent <id> --to <number> --test   # --test for a safe trial
+cku calls list --limit 20
+cku calls get <callId>
+cku calls export --start 2026-09-01 --file calls.csv
+```
+
+`--var k=v` is repeatable and becomes call metadata. Filters shared by `list`
+and `export`: `--type --agent --versions --start --end --batch --hangup
+--duration --to --converted --lead --buylead`.
+
+### Reading a call's raw log
+
+```bash
+cku calls logs <callId>
+cku calls logs <callId> "grep -iE 'error|warning' /call.log"
+cku calls logs <callId> "grep ERROR /call.log | sort | uniq -c | sort -rn | head"
+```
+
+A sandboxed in-process shell over `/call.log` — `grep`, `awk`, `sed`, `cut`,
+`sort`, `uniq`, `head`, `tail`, `wc`, pipes. **No process is ever spawned**, so
+any query is safe. No default query tails the last 100 lines with trace noise
+dropped. Logs are kept 7 days; the blob URL is never printed.
+
+This is the fastest way to diagnose a failed call. Start here before theorising.
+
+## Phone numbers
+
+```bash
+cku numbers list
+cku numbers catalog          # buyable pool + price
+cku numbers buy <numberOrPhone>
+cku numbers spam <numberOrPhone> [--off]
+cku numbers release <numberOrPhone>
+```
+
+Accepts an id *or* the number itself, with or without `+`, spaces or dashes.
+
+## Batches
+
+```bash
+cku batches create --file leads.csv --name "Q3 outreach" --agent <id>
+cku batches schedule --file leads.csv --name X --at "2026-08-05T10:00:00+05:30" \
+  --window 10:00-19:00 --retries 2 --gaps 30,60
+cku batches list
+cku batches status <batchId>
+cku batches send-next-try <batchId>
+cku batches download <batchId> --type receipts
+```
+
+CSV rows may carry `x_agent_id` and `x_schedule_at` to override per row.
+
+## Simulations
+
+```bash
+cku sim create <agentId> --name "cold call" --prompt "..." --criteria "..."
+cku sim run <agentId> --tests <id1>,<id2> --versions <v1>,<v2>
+cku sim runs <agentId>
+cku sim results <batchId>
+```
+
+Runs are asynchronous — start one, then poll `sim results`.
+
+## Analytics
+
+```bash
+cku analytics overview
+cku analytics performance
+cku analytics version <agentId>
+```
+
+## Voices and transcribers
+
+```bash
+cku voices --providers                        # which providers, which models
+cku voices --provider cartesia --fields       # exact keys that provider takes
+cku voices --provider sarvam --language hi
+cku transcribers
+cku transcribers --provider deepgram --fields
+```
+
+`--fields` is the important one: it lists exactly which keys that provider's
+`voice_configuration` / `transcriber` object should carry. Writing a key a
+provider does not use puts the agent in a state the web UI cannot edit or undo.
+
+## Chat agents, audits, secrets
+
+```bash
+cku chat-agents list
+cku chat-agents update <id> --set '{"name":"X"}'
+cku audit-strategies list <agentId>
+cku audit-strategies models
+cku audit-strategies create <agentId> --strategy "Check for consent before ..."
+cku secrets list
+cku secrets set MY_KEY          # hidden prompt; --stdin to pipe
+```
+
+## JSON input: inline vs file
+
+Two parsers, chosen by where the text came from:
+
+- **Inline / argv** — lenient. PowerShell strips double quotes from
+  single-quoted arguments, so `--set '{"name":"x"}'` arrives as `{name:x}`.
+  The CLI puts the quotes back.
+- **File or stdin** — strict. The shell never touched these, so a real typo is
+  reported rather than guessed at.
+
+**When a shell is involved, prefer the file form.** It is quote-proof on every
+platform:
+
+```bash
+cku agents update <id> --set @patch.json
+cku agents create --file agent.json
+cku agents create < agent.json
+```
+
+BOMs are stripped automatically, so a file saved by Windows PowerShell is fine.
+
+## Database-managed fields are rejected
+
+`_id`, `__v`, `createdAt`, `updatedAt`, `userId`, `agentId` in any payload →
+hard error. This is deliberate. `cku agents get --json` output includes them, so
+do not feed it straight back into `create`. Use `cku agents export`, which is
+already sanitised.
+
+## Known gap: export output is not import input
+
+```bash
+cku agents export <id> --versions <v> --file a.json   # writes {"agents": [...]}
+cku agents import a.json                              # expects a flat array/object
+```
+
+`import` does **not** accept what `export` produces — it reads the wrapper key
+as the agent and reports every field missing. This is upstream behaviour, not a
+local fix. To round-trip, unwrap it:
+
+```bash
+jq '.agents[0]' a.json > agent.json && cku agents import agent.json --dry-run
+```
+
+Always `--dry-run` first: it validates without creating anything.
+
+## Skill pack
+
+```bash
+cku skills install --claude        # this fork's pack
+cku skills install --claude --official   # upstream pack
+cku skills update                  # refresh every install
+cku skills dir --claude            # where it landed
+```
+
+Targets: `--claude --cursor --copilot --gemini --windsurf --roo --opencode
+--cline --codex --all`, plus `--project` to install into the repo instead of
+your user account. Skills ship from GitHub, so a new skill reaches users
+without a CLI release.
+
+## Exit codes and errors
+
+`0` success, `1` handled failure. Errors are written to be **acted on** — they
+name the field, state what is allowed, and give the command to run next. Read
+the message before retrying; retrying the same command will fail the same way.
+
+Common ones:
+
+| Message | Cause |
+|---|---|
+| `Invalid id: not a valid id` | invented or malformed id — run the `list` command |
+| `Not logged in. Run \`cku login\`` | no session for the account in effect |
+| `--versions is required to update version field(s)` | version-level field without a target |
+| `contains database-managed field(s)` | round-tripping `get --json` output |
+| `Forbidden: no permission` | the account lacks that capability — not a CLI bug |
+
+## Reference
+
+Full flag surface per command group: `REFERENCE.md`.
+
+`cku <group> --help` for any group, `cku --help` for the list.

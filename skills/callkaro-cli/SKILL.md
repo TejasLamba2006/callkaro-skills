@@ -289,19 +289,27 @@ hard error. This is deliberate. `cku agents get --json` output includes them, so
 do not feed it straight back into `create`. Use `cku agents export`, which is
 already sanitised.
 
-## Known gap: export output is not import input
+## Known gap: export output often fails import
 
 ```bash
-cku agents export <id> --versions <v> --file a.json   # writes {"agents": [...]}
-cku agents import a.json                              # expects a flat array/object
+cku agents export <id> --versions <v> --file a.json
+cku agents import a.json --dry-run
 ```
 
-`import` does **not** accept what `export` produces — it reads the wrapper key
-as the agent and reports every field missing. This is upstream behaviour, not a
-local fix. To round-trip, unwrap it:
+`export` writes a bare agent object (an array for several versions), and
+`import` reads that shape. But the backend's export response leaves out fields
+that `import` requires. In a sweep of 109 versions, 95 were rejected, usually
+for a mix of `language_switching_instructions`, `silence_instructions`,
+`language_lockin_time`, `allowed_languages` and `language_switch_min_words`.
+This is a backend gap, not a CLI one.
+
+To round-trip, run `--dry-run`, add each field it names to the JSON, then
+re-run. `null` is what the backend stores for an unset field (`[]` for
+`allowed_languages`, `3` for `language_switch_min_words`), and
+`cku agents get <id> --versions <v> --json` shows that version's real value:
 
 ```bash
-jq '.agents[0]' a.json > agent.json && cku agents import agent.json --dry-run
+cku agents get <id> --versions <v> --json > full.json   # has every field
 ```
 
 Always `--dry-run` first: it validates without creating anything.

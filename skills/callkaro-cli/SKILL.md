@@ -249,6 +249,146 @@ cku transcribers --provider deepgram --fields
 `voice_configuration` / `transcriber` object should carry. Writing a key a
 provider does not use puts the agent in a state the web UI cannot edit or undo.
 
+### Which models are actually allowed
+
+```bash
+cku models                 # per slot, and which field each governs
+cku models --slot agent    # the full list for one slot
+cku models --json
+```
+
+**Models are scoped per slot, and the slots do not agree.** `agent` has 44
+models; `post-call` has 9 and excludes `gpt-4o` and `o4-mini`. So this is fine:
+
+```bash
+cku agents update <id> --set '{"model":"gpt-4o"}'
+```
+
+and this is rejected locally, correctly:
+
+```bash
+cku agents update <id> --set '{"postcallmodel":"gpt-4o"}'
+```
+
+`model` and `secondary_model` follow the `agent` slot; `postcallmodel` follows
+`post-call`. There are other slots the server exposes (`kpi-rca`, `ai-auditor`,
+`simulation`, …) that are not agent fields.
+
+`cku models` works with or without a dashboard session — it reads the live
+server when you have one, otherwise the copy in `catalog.json` last synced from
+it, and it prints which source it used. A model that a stale list omits is
+rejected *before* it reaches the server, so a refusal is not proof the model is
+unavailable.
+
+## Dashboard commands need a second credential
+
+`cku kpi`, `cku analyzers` and `cku models` talk to the **dashboard** API, not
+`/cli/*`. They need their own sign-in:
+
+```bash
+cku dashboard login      # separate from `cku login`
+cku dashboard whoami     # is the stored token still valid?
+cku dashboard probe      # which dashboard routes this token can reach (read-only)
+cku dashboard logout
+```
+
+Without it these commands fail with `Run 'cku dashboard login'`. That is not a
+bug and not a fixable-with-retry condition — the two credentials are genuinely
+separate and neither works for the other.
+
+| | `cku login` | `cku dashboard login` |
+|---|---|---|
+| grants | `/cli/*` — agents, calls, numbers, batches | `/pending-tasks`, `/kpi-manager`, `/v1/*` |
+| token | `ck_…` | dashboard JWT (a cookie) |
+| lifetime | until logout | **24 hours**, no refresh endpoint |
+
+The dashboard token expires after 24h with no way to renew it, so a long-lived
+automation that suddenly starts failing on `kpi` or `analyzers` is almost always
+just an expired session. Re-run `cku dashboard login`; do not start rewriting the
+script.
+
+Passwords are never stored. `cku dashboard login` takes a password, uses it once,
+and writes only the resulting token.
+
+## KPI manager and the pending-task board
+
+`cku kpi` is the only way to reach the pending-task board from a terminal. The
+official `ck` has no KPI commands at all.
+
+```bash
+cku kpi agents                          # scored agents, names, severity counts
+cku kpi tasks --limit 50                # the board
+cku kpi show "<taskId>"                 # one card in full, incl. recommended fix
+cku kpi history --agents <id,id>
+```
+
+Ids contain colons — **quote them** or the shell will misread them.
+
+Every filter runs locally against the whole board, because the endpoint takes no
+parameters. They combine with AND and the header reports `matching of total`, so
+a narrow result cannot be mistaken for the whole board:
+
+```bash
+cku kpi tasks --severity "Very High,High" --column action_items
+cku kpi tasks --agent "Retail" --since 7d --assigned none
+cku kpi tasks --search "deal closure" --with-calls
+```
+
+**Severities are six, not four:** `Very High`, `High`, `Medium`, `Low`,
+`Very Low`, `Negligible`. `--column` takes the id or the display label.
+
+Read the **COLUMN** column in the output. `GET /pending-tasks` returns *every*
+column, `done` and `rejected` included — a retired card is still returned, so a
+card that is closed is not the same as a card that is gone. `--column action_items`
+is the "still open" query; an unknown column is an error, never an empty result.
+
+### Writing to the board
+
+```bash
+cku kpi create --cause "Agent did not greet" --fix "Add a greeting line" \
+               --severity "Very High" --column action_items
+
+cku kpi move "<taskId>" in_progress
+cku kpi move "<taskId>" rejected        # this is how a card is retired
+
+cku kpi comment "<taskId>" "Fixed in v3, shipping Thursday"
+cku kpi set "<taskId>" --description "Longer context for the card"
+
+cku kpi assignees                       # who a card can go to
+cku kpi assign "<taskId>" --to "Poornesh"
+cku kpi assign "<taskId>" --to ai_fde --agent <agentId> --versions <v1,v2>
+
+cku kpi target --agent <id> --value 25  # KPI Manager target %
+cku kpi rca --agent <id> --since 2026-09-01 --until 2026-09-30
+```
+
+**There is no delete.** Do not look for one and do not try to synthesise it. A
+card is retired by moving it to `rejected`, which is reversible. If you need a
+card gone from the board permanently, that is a dashboard-side action, not a CLI
+one.
+
+**Only `description` is editable after create.** `cause`, `--fix` and
+`--severity` are fixed at creation — the board has no route to change them. To
+correct one, create a replacement and move the original to `rejected`:
+
+```bash
+cku kpi create --cause "corrected cause" --fix "corrected fix" --severity Medium
+cku kpi move "<oldTaskId>" rejected
+```
+
+`cku kpi target` reads the agent's current config and re-sends it, because the
+server replaces the metric *and* the RCA prompt together. You do not need to
+pass `--rca-prompt` to keep it, and you should not — a hand-written prompt will
+be worse than the one already there.
+
+Assigning to `ai_fde` requires **both** `--agent` and `--versions`; it queues
+work that changes a real agent, so confirm the version ids first with
+`cku agents versions <agentId>`. `--ab-split` and `--apply-to-published`
+widen the blast radius further.
+
+`cku kpi rca` starts a real RCA run over a date range. It is a write against
+live agent configuration, not a dry run.
+
 ## Chat agents, audits, secrets
 
 ```bash
@@ -340,8 +480,11 @@ Common ones:
 |---|---|
 | `Invalid id: not a valid id` | invented or malformed id — run the `list` command |
 | `Not logged in. Run \`cku login\`` | no session for the account in effect |
+| `Run \`cku dashboard login\`` | dashboard command (`kpi`, `analyzers`, `models`) with no dashboard session — a *separate* sign-in from `cku login`, and it expires after 24h |
 | `--versions is required to update version field(s)` | version-level field without a target |
+| `Invalid value for "postcallmodel"` | that model is valid for `model` but not for post-call — the slots differ, see `cku models` |
 | `contains database-managed field(s)` | round-tripping `get --json` output |
+| `Unknown column "…"` | a `--column` value that is not one of the six board columns |
 | `Forbidden: no permission` | the account lacks that capability — not a CLI bug |
 
 ## Reference

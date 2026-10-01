@@ -7,7 +7,7 @@ I put these together after clicking through the dashboard and reading the docs e
 ## What is inside
 
 - `callkaro-voice-agents` for building voice agents, prompts, voices, transcribers, versions, functions, secrets, knowledge bases
-- `callkaro-cli` for driving everything from the terminal with `cku`: agents, calls, numbers, batches, simulations, analytics, and multi-account switching
+- `callkaro-cli` for driving everything from the terminal with `cku`: agents, calls, numbers, batches, simulations, analytics, multi-account switching, and the dashboard-side KPI board (`cku kpi`) with its own separate sign-in
 - `callkaro-chat-agents` for WhatsApp and Instagram chat agents
 - `callkaro-calls-api` for outbound calls, campaigns, schedules, history
 - `callkaro-webhooks` for realtime events like call ended and message status
@@ -29,7 +29,7 @@ This repo is a Claude Code plugin marketplace. One plugin, eleven skills.
 /plugin install callkaro-skills@callkaro
 ```
 
-Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all ten skills, so updates come through `/plugin update`.
+Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all eleven skills, so updates come through `/plugin update`.
 
 ### npx skills CLI (any harness)
 

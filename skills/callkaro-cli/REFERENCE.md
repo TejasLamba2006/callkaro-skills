@@ -16,53 +16,88 @@ the exhaustive flag list.
 -h, --help      show help
 ```
 
+## `cku register`
+
+```
+Options:
+  --google         sign up with Google in your browser (skips the picker)
+  --email <email>  email address
+  --name <name>    your name
+```
+
+## `cku login`
+
+```
+Options:
+  --password       use the classic email + password prompt instead
+  --email <email>  email address (with --password)
+```
+
+## `cku logout`
+
+## `cku whoami`
+
+```
+Options:
+  --json      output raw JSON
+```
+
+## `cku dashboard`
+
+Subcommands: `login` `whoami` `probe` `logout`
+
+## `cku models`
+
+```
+Options:
+  --slot <name>  list one slot in full, e.g. agent, post-call, kpi-rca
+  --json         output raw JSON
+
+  Reads the server when you have a dashboard session, otherwise the copy in
+  catalog.json last synced from it. Use --slot for one slot in full:
+    cku models --slot agent
+```
+
+## `cku kpi`
+
+Subcommands: `agents` `tasks` `create` `move` `set` `comment` `assignees` `assign` `target` `rca` `show` `history`
+
+## `cku analyzers`
+
+Subcommands: `list` `show` `audit-reports` `audit-strategies`
+
+## `cku config`
+
 ## `cku accounts`
 
 Subcommands: `list` `use` `bind` `unbind` `status` `remove`
 
-## `cku agents`
+## `cku update`
 
-Subcommands: `list` `get` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced`
-
-## `cku analytics`
-
-Subcommands: `overview` `performance` `version`
-
-## `cku batches`
-
-Subcommands: `create` `schedule` `list` `get` `status` `send-next-try` `send-untriggered` `download`
-
-## `cku calls`
-
-Subcommands: `make` `list` `get` `logs` `export`
-
-## `cku chat-agents`
-
-Subcommands: `models` `templates` `template` `list` `get` `versions` `create` `update` `create-version` `publish`
-
-## `cku numbers`
-
-Subcommands: `list` `catalog` `buy` `spam` `unspam` `release`
-
-## `cku ongoing`
-
-Subcommands: `status` `pause` `resume` `clear`
+```
+Options:
+  --skip-skills  update the CLI only
+```
 
 ## `cku secrets`
 
 Subcommands: `list` `set` `remove` `rename`
 
-## `cku sim`
+## `cku agents`
 
-Subcommands: `tests` `create` `delete` `run` `runs` `results`
+Subcommands: `list` `get` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced`
+
+## `cku chat-agents`
+
+Subcommands: `models` `templates` `template` `list` `get` `versions` `create` `update` `create-version` `publish`
 
 ## `cku skills`
 
 Subcommands: `install` `update` `dir`
 
-## `cku audit-strategies`
+## `cku numbers`
 
-Subcommands: `list` `get` `filter-options` `models` `create` `update`
+Subcommands: `list` `catalog` `buy` `spam` `unspam` `release`
 
 ## `cku voices`
 
@@ -114,37 +149,26 @@ Options:
   --json          raw JSON
 ```
 
-## `cku config`
+## `cku calls`
 
-## `cku login`
+Subcommands: `make` `list` `get` `logs` `export`
 
-```
-Options:
-  --password       use the classic email + password prompt instead
-  --email <email>  email address (with --password)
-```
+## `cku ongoing`
 
-## `cku logout`
+Subcommands: `status` `pause` `resume` `clear`
 
-## `cku whoami`
+## `cku analytics`
 
-```
-Options:
-  --json      output raw JSON
-```
+Subcommands: `overview` `performance` `version`
 
-## `cku register`
+## `cku batches`
 
-```
-Options:
-  --google         sign up with Google in your browser (skips the picker)
-  --email <email>  email address
-  --name <name>    your name
-```
+Subcommands: `create` `schedule` `list` `get` `status` `send-next-try` `send-untriggered` `download`
 
-## `cku update`
+## `cku sim`
 
-```
-Options:
-  --skip-skills  update the CLI only
-```
+Subcommands: `tests` `create` `delete` `run` `runs` `results`
+
+## `cku audit-strategies`
+
+Subcommands: `list` `get` `filter-options` `models` `create` `update`

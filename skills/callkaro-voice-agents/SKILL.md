@@ -126,6 +126,14 @@ Beyond pre-call / in-call / post-call, the platform has **`on_connected`** — a
 
 Pattern worth knowing: things you'd otherwise write as "LLM must call this immediately after X" (marking a cohort delivered, recording a state transition, firing a webhook on a specific milestone) are often better as `on_connected` or a deterministic pre-call, because the LLM is the least reliable party in the loop.
 
+### What function code can see and call
+
+`REFERENCE-function-runtime.md` lists what custom function code can see and call: the Python runtime, the
+names bound in a function's globals, the `utils` package, the livekit `RunContext` / `AgentSession` / agent
+surface (language switching, STT, TTS, LLM, VAD, turn handling), what `ctx.userdata` holds, how to get output
+into the call log, and a recipe to re-measure all of it. Read it before writing a custom function that needs
+more than its arguments.
+
 ### What the account actually uses (301-agent survey, 27 agents deep-exported)
 
 Function type frequency: `custom_post_call` 20, `custom_pre_call` 19, `custom_in_call` 15, `end` 11 (+7 capability-scoped), `transfer` 6, `keep_call_on_hold` 3, plus WhatsApp-specific types (`whatsapp_post_call`, `send_to_whatsapp`).

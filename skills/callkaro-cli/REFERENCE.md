@@ -44,7 +44,7 @@ Options:
 
 ## `cku dashboard`
 
-Subcommands: `login` `whoami` `probe` `logout`
+Subcommands: `login` `whoami` `probe` `logout` `api`
 
 ## `cku models`
 
@@ -85,7 +85,7 @@ Subcommands: `list` `set` `remove` `rename`
 
 ## `cku agents`
 
-Subcommands: `list` `get` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced`
+Subcommands: `list` `get` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced`
 
 ## `cku chat-agents`
 
@@ -94,6 +94,10 @@ Subcommands: `models` `templates` `template` `list` `get` `versions` `create` `u
 ## `cku skills`
 
 Subcommands: `install` `update` `dir`
+
+## `cku whatsapp`
+
+Subcommands: `list`
 
 ## `cku numbers`
 
@@ -167,7 +171,7 @@ Subcommands: `create` `schedule` `list` `get` `status` `send-next-try` `send-unt
 
 ## `cku sim`
 
-Subcommands: `tests` `create` `delete` `run` `runs` `results`
+Subcommands: `tests` `create` `delete` `run` `runs` `results` `variables`
 
 ## `cku audit-strategies`
 

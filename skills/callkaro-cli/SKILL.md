@@ -29,7 +29,14 @@ If not logged in: `cku login` (opens a browser; no password in the terminal).
 `Invalid id: not a valid id`.
 
 **Prefer `--json` whenever you intend to parse the output.** Human tables are
-for people; they are not a stable interface.
+for people; they are not a stable interface. `--json` prints a bare array or
+object; where metadata matters it is opt-in (`cku calls list --json --meta` gives
+`{calls, pagination}`, and `--page <n>` walks further pages). Piped output
+carries no ANSI colour codes.
+
+**Nothing here waits for a keypress without a terminal.** Destructive commands
+need `--yes` when stdin is not a TTY, and commands that would otherwise prompt
+fail at once naming the flags to pass. In a script, always pass them.
 
 ## Which account am I acting as?
 
@@ -219,13 +226,43 @@ CSV rows may carry `x_agent_id` and `x_schedule_at` to override per row.
 ## Simulations
 
 ```bash
-cku sim create <agentId> --name "cold call" --prompt "..." --criteria "..."
-cku sim run <agentId> --tests <id1>,<id2> --versions <v1>,<v2>
+cku sim create <agentId> --name "cold call" --prompt "..." --criteria "..." \
+  --variables '{"lead_id":"900029","city":"Delhi"}' \
+  --functions '[{"name":"context_setting","response":{"ok":true}}]'
+cku sim run <agentId> --tests <id1>,<id2> --versions <v1>,<v2> [--epoch 3] --wait
 cku sim runs <agentId>
-cku sim results <batchId>
+cku sim results <batchId> --wait --agent <agentId>
+cku sim delete <testCaseId> --yes
 ```
 
-Runs are asynchronous — start one, then poll `sim results`.
+- `--variables` fills the agent's `{{placeholders}}` for that test. Give a JSON
+  object (inline or `@vars.json`); numbers and arrays are
+  stringified for you, because the backend stores every value as a string.
+- `--functions` mocks tool calls: a list of `{name, response}`. Which calls are
+  mocked is decided by the server; there is no flag to force real functions.
+- **Use `--wait`** instead of polling. It blocks until every result of the batch
+  exists (`tests x versions x epoch`), prints a PASS/FAIL table, and **exits 1 if
+  any test failed or the wait timed out** (`--timeout <seconds>`, default 600).
+  Progress goes to stderr, so `--json` stdout stays parseable. On a timeout the
+  run is still going: re-attach with `sim results <batchId> --wait --agent <id>`.
+- Without `--wait`, runs are asynchronous: `sim run` returns a batch id and
+  `sim results` shows whatever has finished so far.
+- `sim delete` needs `--yes` when there is no terminal; without it the command
+  fails immediately instead of waiting for a keypress.
+
+### Saved variable sets (dashboard credential)
+
+Named sets of test variables, shared across an agent's tests. These use the
+dashboard sign-in below, not `cku login`.
+
+```bash
+cku sim variables list <agentId>
+cku sim variables show <agentId> <name-or-id>
+cku sim variables create <agentId> <name> --variables @vars.json
+cku sim variables delete <agentId> <name-or-id> --yes
+```
+
+A name that matches more than one set is refused, not guessed; use the id.
 
 ## Analytics
 
@@ -282,7 +319,7 @@ unavailable.
 
 ## Dashboard commands need a second credential
 
-`cku kpi`, `cku analyzers` and `cku models` talk to the **dashboard** API, not
+`cku kpi`, `cku analyzers`, `cku models` and `cku sim variables` talk to the **dashboard** API, not
 `/cli/*`. They need their own sign-in:
 
 ```bash
@@ -302,13 +339,30 @@ separate and neither works for the other.
 | token | `ck_…` | dashboard JWT (a cookie) |
 | lifetime | until logout | **24 hours**, no refresh endpoint |
 
-The dashboard token expires after 24h with no way to renew it, so a long-lived
-automation that suddenly starts failing on `kpi` or `analyzers` is almost always
-just an expired session. Re-run `cku dashboard login`; do not start rewriting the
-script.
+The dashboard token expires after 24h and the server has no refresh endpoint.
+`cku dashboard login` therefore **stores the password by default** (plain text in
+the account file, mode 0600 — the same exposure as the tokens beside it), and the
+CLI silently signs in again when the token lapses. Pass `--no-save-password` to
+opt out; then a long-lived automation that starts failing on `kpi`, `analyzers`
+or `sim variables` is just an expired session, and the fix is to re-run
+`cku dashboard login`, not to rewrite the script. `cku dashboard logout` removes
+the stored password with the session.
 
-Passwords are never stored. `cku dashboard login` takes a password, uses it once,
-and writes only the resulting token.
+### Escape hatch: `cku dashboard api`
+
+For a dashboard route the CLI has no command for yet:
+
+```bash
+cku dashboard api GET /v1/test-simulations --query agentId=<id>
+cku dashboard api POST /v1/some-route --body '{"a":1}'     # or --body @file.json
+```
+
+It uses the stored session, so **never read the token out of the account file or
+hand-roll `curl`/`urllib` requests** — that is exactly what this replaces. The
+path must start with `/` (full URLs are refused), redirects are not followed, and
+only GET/POST/PUT/PATCH/DELETE are allowed. The response body is printed as JSON;
+a non-2xx prints `HTTP <status>` and the full error body to stderr and exits 1.
+Prefer a real command when one exists.
 
 ## KPI manager and the pending-task board
 

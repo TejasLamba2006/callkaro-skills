@@ -249,14 +249,6 @@ platform calls on every capability switch.
 
 Test these on a throwaway version, one change per call, reading the object back after each.
 
-## Environment
-
-About 280 environment variables are visible to function code. Names include provider API keys (LLM, STT,
-TTS), database URIs, webhook URLs, LiveKit and Kubernetes service variables, and per-client secrets. A probe
-that must list the environment should print names only, never values.
-
-Treat this as a risk, not a feature: function code can read secrets that belong to the platform and to other
-integrations. Use `x_secrets` (Dashboard Settings > Secrets) for your own.
 
 ## Probe recipe (to re-measure or go deeper)
 

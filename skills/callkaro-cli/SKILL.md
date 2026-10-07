@@ -546,3 +546,19 @@ Common ones:
 Full flag surface per command group: `REFERENCE.md`.
 
 `cku <group> --help` for any group, `cku --help` for the list.
+
+## Handbook step to command map
+
+For agent engineering work (`callkaro-agent-design`, `callkaro-agent-review-debug`, `callkaro-qa-framework`), the steps map to these commands. Handbook steps with no CLI command are marked.
+
+| Step | Command |
+|---|---|
+| Understand a version | `cku agents get <id>`, `cku agents export <id> --versions <v> --file a.json`, `cku agents versions <id>` |
+| Valid models, voices, transcribers | `cku models --slot agent`, `cku voices --provider <p> --fields`, `cku transcribers --provider <p> --fields` |
+| Write a new version | `cku agents create`, `cku agents clone-version`, then `cku agents update <id> --set @patch.json --versions <new>` |
+| Publish | `cku agents publish <id> --versions <v>` (only when asked) |
+| Read a call and its log | `cku calls get <id>`, `cku calls logs <id> "grep ..."` |
+| Calls across a window | `cku calls list`, `cku calls export --start ...` |
+| Create or run simulation cases | `cku sim create`, `cku sim run --wait`, `cku sim results` |
+| Analytics | `cku analytics overview`, `performance`, `version <agentId>` |
+| Search reference versions for a new build | no command yet (MCP-only) |

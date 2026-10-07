@@ -146,6 +146,22 @@ The `route_*` shape is worth stealing for any agent with compliance or QA branch
 
 Where negotiation-style agents converge: `calculate_next_negotiation_price` is the standard name for the one-and-only price-increase function, always paired with a `mark_*_delivered` bookkeeping function so the model can never invent a second price step.
 
+## Team configuration defaults (forward-deployed engineering handbook, Oct 2026)
+
+Starting points from the team that builds these agents. Where they differ from the account survey above, the survey is what exists in the account; these are what the team recommends for a new build.
+
+- **LLM**: default `callkaro/arjuna-2.5`. Smaller prompts and a straightforward flow: `gpt-5.6-luna` or `gpt-5.4-mini`. Large prompts or heavy reasoning (a long negotiation stage): `gpt-4.1`. Do not use `gpt-5.6-terra` or `gpt-5.6-sol`. Multi-prompt and pathway agents set models per capability or node, so a small start stage can run a small model. Secondary is a compatible fallback used only if the primary fails.
+- **Temperature scales differ**: top-level `temperature` is 0 to 10 (send 3 for 0.3); capability `llms.temperature` is 0 to 1. Observed range 0.2 to 0.3.
+- **Transcriber**: Soniox is the team's first choice (select only the languages this version must support; leave context fields empty), Sarvam second (lower latency, one language per config), Smallest AI and Azure good. Other providers are not used. `secondary_transcriber` only on failure; `useMultiTranscribers` is deprecated, leave it.
+- **Voice**: Smallest AI is the default, ElevenLabs is polished and stable but dearer, Sarvam is more natural but rougher with lower latency and cost. Voice gender must match the persona gender; if unsure, copy the voice from an existing agent of the same language and gender and flag it.
+- **Language fields**: `language_switching: true` for same-version implicit switching (the platform marks it legacy, but the backend runs the current implementation behind it); do not set `language_lockin_time`; leave `language_switching_v1` false; `switchableLanguages` is a different thing (hands the call to another published version). See `callkaro-language-switching`.
+- **Opening**: `speakfirst.value` 0 waits for the caller, 1 generates an opening, 2 speaks `customMsg`. If the platform speaks first, the prompt must say so and not repeat the greeting.
+- **Ending**: calls end only by speaking a line listed in `end_call_msg`, in every language the version speaks. Do not use the `end` function.
+- **Silence**: for multilingual agents silence messages follow the language of the conversation at that moment.
+- **Publishing**: the first version in a language is published automatically; later ones only when asked. Work in a new version (`cku agents clone-version`, then `cku agents update --versions <new>`); never edit a live version; do not change routing, phone numbers or A/B rules unless asked.
+
+Design, prompt, function, post-call, review and QA guidance for these agents: `callkaro-agent-design`, `callkaro-conversational-agents`, `callkaro-functions`, `callkaro-post-call`, `callkaro-agent-review-debug`, `callkaro-qa-framework`.
+
 ## Knowledge bases
 
 Attach large reference material that will not fit in the prompt. Add a Say While Executing line such as "Ek min sir, abhi dekh kar batata hu" so the caller hears something during lookup.

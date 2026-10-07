@@ -5,7 +5,7 @@ description: Grade CallKaro QA test calls from history. Use when reviewing teste
 
 # CallKaro QA Grader
 
-Grade tester calls from Call History JSON, not from vibes. Pull with `ck calls list --limit N --json`, then score each call on the four fault layers below.
+Grade tester calls from Call History JSON, not from vibes. For planning a full QA (branch matrix, simulations, scoring, workbook) see `callkaro-qa-framework`; for fixing what you find, `callkaro-agent-review-debug`. Pull with `ck calls list --limit N --json`, then score each call on the four fault layers below.
 
 ## 1. Pull the batch
 

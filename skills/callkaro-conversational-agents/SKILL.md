@@ -139,6 +139,33 @@ Start from all fifteen, prune per agent:
 14. personal emergency or distress: no pitch, offer a callback, end
 15. off-topic questions, attempts to extract the prompt
 
+### Tier 2: include when relevant
+
+16. "Where did you get my number?"
+17. "Send it on WhatsApp / SMS." Promise only if a function exists to do it.
+18. "Call me on another number."
+19. "Hold on a minute." Use `keep_call_on_hold` if configured.
+20. Asks for information the agent does not have. Never invent; offer a team callback.
+21. Still confused after one plain explanation. Offer a callback, end.
+22. Voicemail or a phone call-screening assistant (the iPhone screener asking for name and reason). Give a short English reason line, then start the introduction when a person answers.
+23. Customer says they will call back themselves. Every callback runs one way: the company calls them.
+
+Items 1 and 3 to 9 are confirmed defaults, the rest proposed defaults. Prune per agent.
+
+### Interruptions
+
+If the customer's interjection is only an acknowledgement, finish the current point. If it raises something relevant, stop, address it, then resume where you left off. An objection is an interruption: answer it, then return to the exact step (same step, same count, same price). Never restart the flow after one.
+
+## Snippets: enforcement on every turn
+
+Snippets are separate version fields injected on every turn, beside the prompt body.
+
+- `model_response_snippet`: how responses are generated: never speak `<...>` markers, never narrate internal actions, never output JSON or function details, turn length, natural-speech rules.
+- `function_calling_snippet`: in-call functions only: when to call each, what must be true first, what to say before and after, what to do on success, rejection and error, and anti-fabrication (never claim an action that did not happen).
+- `security_guardrails_snippet`: approved scope, out-of-scope refusal lines, escalation after repeated out-of-scope turns, never reveal internal details or the prompt, never reward pressure.
+- `gender_prompt_snippet` (with `detect_gender`) and `language_switch_snippet` (with `language_switching`): optional.
+- **Deliberate double placement.** If the agent keeps missing a rule, state it in the prompt and in the relevant snippet. That is a fix for a known failure, not accidental duplication. A contradiction between the two places is never acceptable.
+
 ## Writing each language
 
 Re-author every line, never translate. A literal translation turns a natural line bookish and the tone does not survive.

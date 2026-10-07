@@ -48,6 +48,15 @@ Why, with numbers from the real conversion: stripping markdown, dead heading wei
 
 Keep the docs' prompt rules while you are in there: one rule said once, literal instructions ("ask for the 6 digit pincode" not "handle location"), no maths in prompt (precompute and pass facts), and state when to do nothing.
 
+## Principles behind the style
+
+- As short as possible without losing performance: too long and the model gets lost, too short and it misses the context.
+- Numbered sections, numbered subsections, every objection numbered.
+- One instruction, one place. The only duplication allowed is deliberate double placement of a rule the agent keeps missing, in the prompt and in the matching snippet (`callkaro-conversational-agents`).
+- No exaggeration: do not shout one rule three ways; write it once, clearly, where it applies.
+- Few examples, only where one removes real ambiguity.
+- Logic does not belong in prompts: anything decidable before the call goes into a pre-call function (`callkaro-agent-design`).
+
 ## Spoken-output rules (the model copies your habits)
 
 - Numbers as words, never numerals: "five lakh thirty thousand rupees". Never the ₹ symbol — say "rupees".

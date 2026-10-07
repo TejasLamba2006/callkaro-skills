@@ -28,7 +28,12 @@
     "./skills/callkaro-prompt-style/",
     "./skills/callkaro-conversational-voice/",
     "./skills/callkaro-language-switching/",
-    "./skills/callkaro-conversational-agents/"
+    "./skills/callkaro-conversational-agents/",
+    "./skills/callkaro-agent-design/",
+    "./skills/callkaro-functions/",
+    "./skills/callkaro-post-call/",
+    "./skills/callkaro-agent-review-debug/",
+    "./skills/callkaro-qa-framework/"
   ],
-  "version": "1.4.0"
+  "version": "1.5.0"
 }

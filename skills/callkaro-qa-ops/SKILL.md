@@ -9,6 +9,8 @@ description: Operate and debug CallKaro day to day. Use when monitoring calls, a
 
 Chat assistant for voice agents: build, improve, or review without edits. Sidebar AI FDE, or the mascot inside Agent Builder (already knows the open agent). Modes: Ask (advice), Auto (does it), Plan (proposes, waits for approval). Ask with purpose, language, audience, actions. Attach docs or sheets as needed. Example: "Create a Hindi appointment agent for a dental clinic that checks slots, books, confirms date and time."
 
+Structured QA and root-cause method: `callkaro-qa-framework`, `callkaro-agent-review-debug`.
+
 ## Audit loop
 
 - Monitor: why users hang up, where they drop.

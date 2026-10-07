@@ -41,6 +41,8 @@ Pairs with `callkaro-conversational-voice` section 6: never list a language in t
 
 Mismatches found auditing live agents: prompt says N=4 while `language_switch_min_words` is 3; `allowed_languages` empty while the prompt speaks six languages; a language in the prompt missing from the transcriber list; a voice id for one language labelled with another language's code; `language_switch_snippet` empty while the rules live only in the body. Export the agent (`callkaro-cli`) and audit these before touching wording.
 
+Team rules for the flags: keep `language_switching: true` (platform docs call it legacy, but the backend runs the current implementation behind it), leave `language_lockin_time` unset and `language_switching_v1` false, and leave `language_switching_instructions` null unless you need custom behaviour. `switchableLanguages` is a different feature: it hands the call to another published version.
+
 ## Choosing N
 
 Default 4. 3 is acceptable. The number must equal `language_switch_min_words` exactly. Lower N flips on filler phrases ("haan ji bolo"); higher N makes the agent slow to follow a real switch.

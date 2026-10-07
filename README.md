@@ -19,19 +19,24 @@ I put these together after clicking through the dashboard and reading the docs e
 - `callkaro-conversational-voice` for making voice agents sound human: short turns, goals over scripts, example exchanges, rationed fillers, prompt size vs latency, Hinglish and multilingual switching, testing
 - `callkaro-language-switching` for implicit, silent language switching: the paste-in Section 0A, the config-agreement table (`language_switch_min_words`, `allowed_languages`, transcriber, `end_call_msg`), a 12-utterance test script, failure fixes
 - `callkaro-conversational-agents` for writing a semi-scripted agent body: SAY vs composed lines, the paste-in Section 0B, call-flow steps, objections, the fifteen cases, writing each Indian language, review checklist
+- `callkaro-agent-design` for designing an agent before any prompt: intake, choosing single prompt vs multi-prompt vs pathway, base vs capability, sizing, precompute in pre-call functions, the design deliverable
+- `callkaro-functions` for pre-call, in-call, on_connected and post-call functions: contracts, execution order, global vs scoped, internal metadata, override and failsafe patterns, skeleton code
+- `callkaro-post-call` for post-call variables, the analysis prompt, `conversion_reason`, dispositions, the per-duration model strategy, webhook vs post-call function
+- `callkaro-agent-review-debug` for the 7-layer review order and the root-cause debug method (evidence, frequency, layer, smallest fix, verify), no patching with another NEVER line
+- `callkaro-qa-framework` for standard QA: branch enumeration, simulation test cases, manual cases, scoring (pass at 85 with critical cases 5 of 5), workbook layout
 
 ## Install
 
 ### Claude Code plugin (recommended)
 
-This repo is a Claude Code plugin marketplace. One plugin, thirteen skills.
+This repo is a Claude Code plugin marketplace. One plugin, eighteen skills.
 
 ```
 /plugin marketplace add TejasLamba2006/callkaro-skills
 /plugin install callkaro-skills@callkaro
 ```
 
-Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all thirteen skills, so updates come through `/plugin update`.
+Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all eighteen skills, so updates come through `/plugin update`.
 
 ### npx skills CLI (any harness)
 

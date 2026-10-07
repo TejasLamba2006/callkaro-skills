@@ -17,19 +17,21 @@ I put these together after clicking through the dashboard and reading the docs e
 - `callkaro-qa-grader` for grading QA test calls by fault layer and disposition
 - `callkaro-prompt-style` for the plain-text house style: de-markdown, banners, SSML pauses, custom begin message, placeholder-safe rewrites
 - `callkaro-conversational-voice` for making voice agents sound human: short turns, goals over scripts, example exchanges, rationed fillers, prompt size vs latency, Hinglish and multilingual switching, testing
+- `callkaro-language-switching` for implicit, silent language switching: the paste-in Section 0A, the config-agreement table (`language_switch_min_words`, `allowed_languages`, transcriber, `end_call_msg`), a 12-utterance test script, failure fixes
+- `callkaro-conversational-agents` for writing a semi-scripted agent body: SAY vs composed lines, the paste-in Section 0B, call-flow steps, objections, the fifteen cases, writing each Indian language, review checklist
 
 ## Install
 
 ### Claude Code plugin (recommended)
 
-This repo is a Claude Code plugin marketplace. One plugin, eleven skills.
+This repo is a Claude Code plugin marketplace. One plugin, thirteen skills.
 
 ```
 /plugin marketplace add TejasLamba2006/callkaro-skills
 /plugin install callkaro-skills@callkaro
 ```
 
-Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all eleven skills, so updates come through `/plugin update`.
+Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all thirteen skills, so updates come through `/plugin update`.
 
 ### npx skills CLI (any harness)
 

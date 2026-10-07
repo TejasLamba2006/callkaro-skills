@@ -97,6 +97,8 @@ Providers that exist but rarely show up in exports: **Gnani** (`en-IN,hi-IN`), *
 
 `default_agent_language`, `voice_configuration.voice_language`, and `transcriber.transcriber_language` must tell the same story, each in **its own provider's format** — never reshape `"hi"` ↔ `"hi-IN"` ↔ `["hi-IN"]` between them. Mismatches produce an agent that speaks one language and transcribes another, which looks like a model problem and isn't. If `language_switching` is on, the transcriber must cover every language in `switchableLanguages`, which means an array-language provider (Soniox or Azure).
 
+For a multilingual agent the prompt and these fields must also agree: `language_switch_min_words` equals the prompt's N, `allowed_languages` lists the supported languages (empty is a miss), every spoken language is in the transcriber list, `silence_language` is `multi`, and `end_call_msg` carries a closing line for every language. Full table, test script and failure fixes: `callkaro-language-switching`. Prompt body structure (SAY vs composed lines): `callkaro-conversational-agents`.
+
 ## Versions and A/B tests
 
 One agent, many versions (language, city, goal). Run standard split by percent, or advanced rules on `metadata`:

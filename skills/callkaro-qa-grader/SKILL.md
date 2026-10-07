@@ -57,6 +57,17 @@ Longer capability-mode agents need a different matrix than single-turn verificat
 - **Interrupt the agent mid-sentence** (barge-in). Fault if the same sentence restarts from the beginning instead of resuming.
 - **Check the opener.** Fault if the identity question never fires, or if it fires only after the customer speaks first (custom begin message not doing its job).
 
+### Multilingual and conversational additions
+
+For agents built on `callkaro-language-switching` / `callkaro-conversational-agents`, add these tester turns and faults:
+
+- **Four or more words of another language** in the reply to the opening. Fault if the next sentence is not in that language, or if the switch is announced or asked about.
+- **"haan ji" / "ok" / one foreign word.** Fault (config or prompt) if the language flips; check `language_switch_min_words` against the prompt's N first.
+- **Switch back and forth.** Fault if the agent stays on the earlier language or mixes two languages in one reply.
+- **A question or "hmm" where a yes/no was expected.** Fault if it is treated as a refusal and the next nudge fires.
+- **A fact volunteered before it was asked.** Fault if the agent asks for it again.
+- **A closing line spoken in the wrong language, paraphrased, or followed by more speech.** Fault: dead line or call never ends; check `end_call_msg`.
+
 ### Taint checks — always before scoring
 
 - `chat_history[].metrics.llm_metadata.model_name` == `FallbackAdapter` on any turn: the call ran on the platform's degraded generic model, not the configured one. Every behavioral fault in it is suspect — grade it as infrastructure, not prompt.

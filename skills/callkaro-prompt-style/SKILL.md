@@ -7,7 +7,7 @@ description: Plain-text house style for CallKaro agent prompts. Use when writing
 
 Prompts are raw text handed to an LLM, not a document a browser renders. Markdown in a prompt is pure overhead: it costs tokens, teaches the model to echo formatting into spoken output, and tables/emojis have burned live calls. This is the plain-text house style proven on a production multi-prompt auction agent (converted from full markdown in one pass) plus the platform mechanics that go with it.
 
-Docs: https://docs.callkaro.ai (Voice AI Agents). Companion: `callkaro-voice-agents` for modes, versions, functions.
+For conversational and multilingual agents, section order and Section 0A/0B templates live in `callkaro-conversational-agents` and `callkaro-language-switching`; per-call values go in the LAST section so the cached prefix stays long. Docs: https://docs.callkaro.ai (Voice AI Agents). Companion: `callkaro-voice-agents` for modes, versions, functions.
 
 ## House style
 

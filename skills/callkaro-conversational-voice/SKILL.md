@@ -10,6 +10,8 @@ the customer, the same sentence twice, and details read back every turn. This sk
 the published voice-agent guides agree on, then adds what we learned tuning a live multilingual
 Hinglish negotiation agent on CallKaro. Sources are linked inline and in the repo README.
 
+Paste-in templates and the full call-flow guideline: `callkaro-conversational-agents` (Section 0B, SAY vs composed lines) and `callkaro-language-switching` (Section 0A). This skill is the why and the evidence; those are the how.
+
 Companions: `callkaro-prompt-style` (plain-text layout, SSML pauses), `callkaro-voice-agents`
 (capabilities, functions, language settings), `callkaro-qa-grader` (grading calls).
 
@@ -56,9 +58,11 @@ Everything else becomes a goal plus one short example line the model may say in 
   filler sounds worse than silence
   ([Auto Interview AI](https://www.autointerviewai.com/blog/prompt-engineering-voice-ai-interruptions-latency-2026)).
   On TTS, too many fillers sound glitchy: start low.
-- Vary the short reaction ("samajh raha hoon", "bilkul", "sahi baat hai", "achha") and never use the
-  same one twice in a row. Empathy openers are only for pushback; a "yes" gets an agreement reaction
-  ("bahut badhiya", "perfect"), never "I understand" or a repeated question.
+- Vary the short reaction ("samajh raha hoon", "bilkul", "sahi baat hai") and never use the
+  same one twice in a call. Empathy openers are only for pushback. Do not open a turn with an empty
+  affirmation ("great", "okay", "perfect", "achha", "theek hai" with nothing after it); a reaction
+  must carry meaning ("of course", "that's fair", or the customer's own choice named back). A "yes"
+  needs the carry or nothing, never "I understand" or a repeated question.
 - Name use: once every two or three turns at the start of a line ("Rahul ji, ..."). Never "ji {name}
   ji" and never the name in every line.
 - Write for the ear: numbers, dates, years and times as words ("twenty twenty-three", "ten thirty
@@ -97,7 +101,7 @@ multi-prompt agent the base prompt plus the current capability are both sent eve
 
 ## 6. Multilingual and Hinglish callers (India)
 
-- Mirror the caller's language mix; never ask them to pick a language. Keep English business words
+- Mirror the caller's language mix; never put a language menu to them (the one exception is asking once, in simple words, when they say they cannot follow). Keep English business words
   (price, offer, payment) inside Indian-language sentences
   ([SquadStack](https://www.squadstack.ai/blog/can-ai-voice-agents-handle-hinglish-and-code-switching)).
 - Don't translate scripts word for word; write each language's line in its own everyday spoken
@@ -113,7 +117,7 @@ multi-prompt agent the base prompt plus the current capability are both sent eve
   - Script is not language: the model must judge the words, not the script of the transcript.
   - A reply of three words or fewer never switches the language ("nahi", "illa", "ledu" are usually
     the transcriber guessing).
-  - Set `language_switch_min_words` to the same count your prompt uses (we use 4). A mismatch makes
+  - Set `language_switch_min_words` to the same count your prompt uses (4 is the default; 3 is acceptable). A mismatch makes
     the platform detector and the prompt disagree.
   - The platform's "Conversation language changed, so reply in X" note is an automatic guess. A
     customer's explicit request for a language must win over it, and switches are silent: "I will
@@ -188,6 +192,7 @@ backs every rule above with numbers from the platform itself:
 - [ ] 4 to 6 example exchanges from real calls, bad vs better
 - [ ] Fillers rationed, none on price/deductions/closing
 - [ ] Prompt deduplicated; labelled CALL DATA; no unfilled placeholders
-- [ ] Soniox list has no script-colliding language; min words matches the prompt
+- [ ] Soniox list has no script-colliding language; min words matches the prompt (`callkaro-language-switching`)
+- [ ] Turn types handled: a question or "hmm" is never a refusal (`callkaro-conversational-agents`)
 - [ ] `<Wait>` tokens in `punctuations_to_remove`
 - [ ] Tested by people who didn't build it, on real phone lines

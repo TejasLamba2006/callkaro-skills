@@ -127,6 +127,23 @@ cku agents update <id> --set '{"voice_configuration":{
   "voice_id":"abc","voice_language":"en","voice_speed":1.1}}'
 ```
 
+**Rule 3: `functions` is merged by `name` — on `cku` only.** The backend replaces
+the whole `functions` array. Sending one function on the official `ck` deletes
+every other function on that version and still prints "Agent Updated
+Successfully". `cku` fetches the target version's functions first: a matching
+`name` is replaced, a new `name` is appended, the rest are kept. Every entry
+needs a `name`. To replace the list on purpose (including removing functions),
+pass `--replace-functions`. With `ck`, always send the complete array.
+
+```bash
+cku agents update <id> --versions <v> --set @one-function.json        # merge
+cku agents update <id> --versions <v> --set @all.json --replace-functions
+```
+
+Function source is validated by the backend, not the CLI. If it rejects
+runtime-injected names (`logger`, `get_job_context`) or `?.`, the CLI cannot
+bypass it.
+
 Values are validated before sending: enum fields list their allowed values,
 and a voice/transcriber model belonging to a *different* provider is rejected
 locally. Both mistakes otherwise persist silently and only show up as a broken

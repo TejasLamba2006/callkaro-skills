@@ -18,6 +18,26 @@ One method and one score for every agent, so quality is comparable across bots, 
 
 Inputs: agent id, the version id under QA, the SOW or call-flow document, and the previous QA workbook if there is one.
 
+## Stage 0: understand this agent
+
+QA cases come from this agent's business, not from a template. Before listing a single case, write the **Agent Brief** (it becomes a tab in the workbook):
+
+- **Business and goal**: what the company sells or does, why it calls, what counts as a conversion.
+- **Caller**: who picks up (age, language mix, literacy, mood, what they were doing), and why they might not want this call.
+- **Data collected**: every slot, its allowed values, and which are one-value only (one city, one slot).
+- **Functions**: each one, what triggers it, every outcome it can return.
+- **Terminal states**: every way the call can end, and the line that ends it.
+- **Rules**: compliance, things the agent must never say, escalation or transfer policy, language policy.
+
+Read the prompt or pathway, the functions, the variables and the SOW to fill it. Every case must cite a Brief item; a case that would fit any agent is generic filler, drop it.
+
+Then think like this agent's customer. Cross each situation with who is speaking and how:
+
+- **Who and mood**: eager, curious, sceptical, busy, confused, elderly or low-literacy, angry, abusive, chatty or off-topic, price-haggling, comparing competitors, proxy (spouse, child, colleague), noisy surroundings, silent.
+- **Slot attacks**, for every slot: gives the right value; vague ("kuch saal"); refuses; gives two values for a one-value slot; changes their mind; corrects an earlier answer; answers a later question early or several at once; contradicts themself; impossible or past value; wrong format.
+
+Happy, sad and strange paths all count. Real failures found this way in past QA: callback time never asked or stored, wrong number pitched anyway, human-transfer request mishandled, an unasked question skipped when answers arrived together, a past-dated slot refused as "full", a stale rule overriding "already done", reasoning text spoken aloud, "ji" on every sentence, opening line missing a variable, call not ending after "thank you".
+
 ## Stage 1: review
 
 Run the 7-layer review in `callkaro-agent-review-debug`. Every check scores 0 to 10 with good, bad and fix.
@@ -45,7 +65,15 @@ Build the list from the SOW and the design across these dimensions:
 7. **Function results**: success, rejection, error, timeout, repeated call (via mocked responses).
 8. **Language**: opening language; switching mid-call (if enabled); short replies that must not switch (`callkaro-language-switching`).
 9. **Conversation behaviour**: interruptions; fillers ("haan", "ok") that are not answers; side questions mid-step; customer corrections; out-of-scope questions; prompt-extraction attempts; abuse.
-10. **Endings**: every terminal branch ends with a closing line and the call actually ends.
+10. **Endings**: every terminal branch ends with a closing line and the call actually ends; "thank you" or "bye" ends it too.
+11. **Callbacks and handoffs**: "call later" with a time, without a time, with a vague time; the agent asks, captures and schedules; request for a human or agent (follow the policy in the Brief).
+12. **Slot handling**: the slot attacks above, applied to each slot.
+13. **Time and date**: past times, today after hours, ambiguous "kal" or "parso", holidays.
+14. **Identity and trust**: "are you a bot?", "who gave you my number?", "send me details first".
+15. **Spoken-output hygiene**: no reasoning or tool text spoken, no repeated filler, every variable in the opening line resolved.
+16. **Interruption and silence**: barge-in during the first pitch, long pause, noise mistaken for speech.
+
+Coverage rule: every Brief item and every terminal state has at least one case; every slot has right, vague, refuse, change and invalid; every objection has a mild and a hard version. Stop when no new branch turns up, not at a number. Mid-size agents usually land at 80 to 150 cases. Patterns to instantiate are in `CASE-LIBRARY.md`; adapt them, never paste them.
 
 Mark critical cases: the main conversion path, compliance paths (DND, AI disclosure, wrong person), any path that writes data or money.
 
@@ -98,11 +126,9 @@ Written for human testers on real calls. Same branch list, written as tester ins
 
 ## The workbook (.xlsx)
 
-Tab 1, Agent Review. Summary block on top: agent name, agent id, version id and name, date, Review %, Simulation %, QA score, critical cases passed, verdict (Pass / Fail). Columns: Area, Check, Score (0-10), What is good, What is bad, Recommendation, Reference.
+Do not hand-format. Write the cases to one JSON file and run `python build_workbook.py qa.json out.xlsx` (needs `openpyxl`); it produces the same styled workbook for every agent. Exact JSON keys, columns and the colour legend are in `WORKBOOK.md`.
 
-Tab 2, Simulation Results. Test id, test case name, branch or situation, critical (Y/N), runs, passed, pass %, previous version pass % (blank on first QA), what happened, comment on agent handling, batch id.
-
-Tab 3, Manual Test Cases. TC id, branch or situation, tester persona and setup, what to say, expected agent behaviour (including how the call should end), critical (Y/N), then tester-filled status, score, comments, call id.
+Tabs: **Summary** (live Review %, Simulation %, QA score, critical cases, verdict, cases per category with chart), **Agent Brief**, **Agent Review**, **Simulation Results**, **Manual Test Cases**. Every case carries a Category (colour-coded), Persona, Critical flag and a Layer / fault column (prompt, function, config, voice/platform, data) so a failure routes straight to the right debug layer. Status, Critical and Layer are dropdowns; scores and pass rates are colour-scaled.
 
 ## After QA
 

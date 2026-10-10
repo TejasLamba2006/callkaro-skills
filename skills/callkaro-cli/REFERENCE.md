@@ -72,6 +72,10 @@ Subcommands: `list` `show` `audit-reports` `audit-strategies`
 
 Subcommands: `list` `use` `bind` `unbind` `status` `remove`
 
+## `cku monitor`
+
+Subcommands: `list` `use` `current` `clear`
+
 ## `cku update`
 
 ```

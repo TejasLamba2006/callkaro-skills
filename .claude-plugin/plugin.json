@@ -10,7 +10,8 @@
     "whatsapp",
     "calls-api",
     "webhooks",
-    "skills"
+    "skills",
+    "mcp"
   ],
   "license": "MIT",
   "name": "callkaro-skills",
@@ -33,7 +34,8 @@
     "./skills/callkaro-functions/",
     "./skills/callkaro-post-call/",
     "./skills/callkaro-agent-review-debug/",
-    "./skills/callkaro-qa-framework/"
+    "./skills/callkaro-qa-framework/",
+    "./skills/callkaro-mcp/"
   ],
-  "version": "1.5.0"
+  "version": "1.6.0"
 }

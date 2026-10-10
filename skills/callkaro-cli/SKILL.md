@@ -81,6 +81,23 @@ deliberately want the shared default to change.
 `CK_ACCOUNT=<email> cku whoami` overrides for a single command — useful in
 scripts, and the safest option when you cannot write to the folder.
 
+## Acting on a client account (monitoring mode)
+
+Some logins are assigned client accounts (official CLI 5.0). `cku monitor` is that feature; it is `monitor`, not `accounts`, because `cku accounts` manages saved logins.
+
+```bash
+cku monitor list            # client accounts assigned to you (* = monitored)
+cku monitor use <accountId> # every later command acts on that client account, writes included
+cku monitor current         # is it on, and from where
+cku monitor clear           # back to your own account
+```
+
+`CK_ACCOUNT_ID=<id>` does the same for one process and wins over the stored choice. `cku login` and `cku logout` end monitoring. `cku whoami` and `cku config` show it when on. **Check `cku monitor current` before any write** if you did not set it yourself: it silently changes whose agents you are editing.
+
+## Using the MCP instead
+
+CallKaro also ships a remote MCP server. When it is connected, `callkaro-mcp` says which jobs belong to it and which stay here. Short version: the CLI for scripted work, dashboard routes and anything that edits `functions`, `voice_configuration` or other whole-object fields; the MCP for reference search and section-by-section inspection when designing agents. Install it with `node <callkaro-mcp skill>/scripts/setup-mcp.js`.
+
 ## Agents
 
 ```bash
@@ -578,4 +595,4 @@ For agent engineering work (`callkaro-agent-design`, `callkaro-agent-review-debu
 | Calls across a window | `cku calls list`, `cku calls export --start ...` |
 | Create or run simulation cases | `cku sim create`, `cku sim run --wait`, `cku sim results` |
 | Analytics | `cku analytics overview`, `performance`, `version <agentId>` |
-| Search reference versions for a new build | no command yet (MCP-only) |
+| Search reference versions for a new build | no command yet. MCP only: `search_reference_versions`, see `callkaro-mcp` |

@@ -89,7 +89,7 @@ Subcommands: `list` `set` `remove` `rename`
 
 ## `cku agents`
 
-Subcommands: `list` `get` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced`
+Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced`
 
 ## `cku chat-agents`
 
@@ -157,6 +157,10 @@ Options:
   --json          raw JSON
 ```
 
+## `cku scheduled`
+
+Subcommands: `list` `queued` `get`
+
 ## `cku calls`
 
 Subcommands: `make` `list` `get` `logs` `export`
@@ -175,7 +179,7 @@ Subcommands: `create` `schedule` `list` `get` `status` `send-next-try` `send-unt
 
 ## `cku sim`
 
-Subcommands: `tests` `create` `delete` `run` `runs` `results` `variables`
+Subcommands: `tests` `create` `update` `delete` `run` `runs` `results` `variables`
 
 ## `cku audit-strategies`
 

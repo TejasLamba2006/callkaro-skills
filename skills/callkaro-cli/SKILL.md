@@ -214,7 +214,25 @@ cku calls export --start 2026-09-01 --file calls.csv
 
 `--var k=v` is repeatable and becomes call metadata. Filters shared by `list`
 and `export`: `--type --agent --versions --start --end --batch --hangup
---duration --to --converted --lead --buylead`.
+--duration --to --converted --lead --buylead --postcall --provider-type --sid`.
+
+- `--postcall name=true|false` (repeatable) filters on a **boolean** post-call
+  variable, e.g. `--postcall dnc_requested=true`. Any other value is rejected:
+  the server would ignore it and return every call.
+- `--sid <callSid>` finds one call by provider SID with no date window.
+- There is no filter for retry count, drop-off reason or excluding test calls on
+  this route; the server ignores those. Exclude test calls with `--type`.
+
+### Scheduled calls (dashboard credential)
+
+```bash
+cku scheduled queued          # what will actually dial, soonest first
+cku scheduled list --page 2   # schedule records, paged (can be tens of thousands)
+cku scheduled get <id>        # one record, its completed tries, still queued?
+```
+
+Read-only. There is no cancel: the backend's delete re-books a new attempt rather
+than cancelling, so cancel from the dashboard.
 
 ### Reading a call's raw log
 
@@ -266,8 +284,11 @@ cku sim create <agentId> --name "cold call" --prompt "..." --criteria "..." \
 cku sim run <agentId> --tests <id1>,<id2> --versions <v1>,<v2> [--epoch 3] --wait
 cku sim runs <agentId>
 cku sim results <batchId> --wait --agent <agentId>
+cku sim update <testCaseId> --criteria "..."   # only the flags you pass are sent
 cku sim delete <testCaseId> --yes
 ```
+
+- `sim update --variables` / `--functions` **replace** the whole map / list.
 
 - `--variables` fills the agent's `{{placeholders}}` for that test. Give a JSON
   object (inline or `@vars.json`); numbers and arrays are
@@ -297,6 +318,26 @@ cku sim variables delete <agentId> <name-or-id> --yes
 ```
 
 A name that matches more than one set is refused, not guessed; use the id.
+
+## Talking to an agent without a call
+
+```bash
+cku agents chat <agentId> --versions <v> --var customer_name=Ravi   --say "Hello?" --say "Who is this?" --say "Not interested"
+cku agents chat <agentId> --say "hi" --json > convo.json        # save
+cku agents chat <agentId> --history @convo.json --say "again?"  # resume
+cku agents chat <agentId> --show-prompt --say "hi"              # rendered prompt
+cku agents chat <agentId>                                        # interactive
+```
+
+One LLM turn per `--say`, through the version's real prompt and tools, with no
+telephony. Stops when the agent calls `end_call`. Use it for a fast check of a
+prompt edit before a simulation batch or a test call.
+
+**Custom in-call functions run for real.** Only `end_call`, transfers, hold,
+knowledge base, language change, DTMF and the WhatsApp booking link are mocked.
+If the version has an in-call function that writes to a CRM or sends a message,
+it fires; the command prints `! <name> is not mocked` when that happens. Use a
+simulation with `--functions` mocks for those agents.
 
 ## Analytics
 

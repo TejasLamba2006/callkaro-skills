@@ -35,7 +35,8 @@
     "./skills/callkaro-post-call/",
     "./skills/callkaro-agent-review-debug/",
     "./skills/callkaro-qa-framework/",
-    "./skills/callkaro-mcp/"
+    "./skills/callkaro-mcp/",
+    "./skills/callkaro-workflows/"
   ],
-  "version": "1.6.0"
+  "version": "1.7.0"
 }

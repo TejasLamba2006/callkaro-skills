@@ -59,6 +59,10 @@ Both return `batch_id`. Add calls with outbound API plus that `batch_id`. Track 
 
 Dashboard Call History filters: call type (Inbound, Outbound, Outbound API, Outbound Scheduled, Outbound Test, Agent Test), batch scope, agent multi select, disconnect reason, duration buckets (0, 1-10s, 11-30s, 31-60s, 60s plus), date range, phone search. Columns include Type, From, To, Agent, Version, Time, Disposition, Last Stage (Converted, Connected, Not Connected, Voicemail), Duration, Model, Voice, Transcriber, Latency, Cost, Hangup Reason.
 
+## Assign to workflow
+
+`POST /workflow/assign` with `to_number`, `workflow_id`, optional `attributes` and IST `schedule_at`. Full contract in the `callkaro-workflows` skill.
+
 ## Batch calls via dashboard
 
 Create Batch Call page has Send Now and Schedule For Later. CSV first column is phone numbers. Optional `x_agent_id`, `x_language`, `x_schedule_at` (YYYY-MM-DDTHH:MM:SS) per row override. Download the template instead of hand making CSVs.

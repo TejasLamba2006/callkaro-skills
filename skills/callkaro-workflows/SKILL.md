@@ -55,7 +55,9 @@ Node: `{id, type, name, x, y, ...type fields}`. Ids unique, form `<type>-<n>`, n
 
 Import rejects: not exactly one Start; missing or duplicate node id; unknown type; `wait` without minutes; `send-call` without `agentId`; `api-basic` without `url`; `api-advanced` without `code`; `wa-template` without `templateId`; `wa-message` without `message`; Conditions with no exits, duplicate exit ids, or a rule missing its field; `update-lead` with no rows or a row missing attribute, source or needed value; edge to a missing node, out of an End, into Start, or with a bad `fromHandle`; no path from Start to an End. Import does not check that IDs are real, so an invented agent id imports fine and fails on the first call.
 
-Save also checks one Start, a Start to End path, live connections, complete node settings. It only warns on unreachable nodes and dead-end branches. Loops are allowed, a run stops itself after 500 steps.
+On the canvas: Add Node menu (End, Send Call, Send WhatsApp Template, Send WhatsApp Message, Wait, Conditions, API Call Basic, API Call Advanced, Update Contact), "Tidy up" lays nodes out left to right, "Find a node" jumps to one, zoom controls, a "Cannot save" counter lists blocking problems, and a new workflow is saved with the "Create Workflow" button (named "Save" in the docs). Create is at `/workflows/create-normal`. Clicking a node opens its settings panel with Delete node.
+
+Create/Save also checks one Start, a Start to End path, live connections, complete node settings. It only warns on unreachable nodes and dead-end branches. Loops are allowed, a run stops itself after 500 steps.
 
 ## Placeholders to use when an ID is unknown
 

@@ -10,6 +10,8 @@ I put these together after clicking through the dashboard and reading the docs e
 - `callkaro-cli` for driving everything from the terminal with `cku`: agents, calls, numbers, batches, simulations, analytics, multi-account switching, and the dashboard-side KPI board (`cku kpi`) with its own separate sign-in
 - `callkaro-mcp` for the remote CallKaro MCP server: MCP vs `cku` decision table, the rules that prevent wrong-account and partial-object damage, and a one-command setup script for Claude Code, Codex, Cursor and VS Code
 - `callkaro-workflows` for Workflows: step types, Conditions and value sources, the importable JSON file, enrolling from the CRM or `POST /workflow/assign`, reading run timelines
+- `callkaro-kpi-manager` for KPI Manager: data sources, metrics and targets, the RCA prompt, daily 5 AM IST pass, RCA reports and root causes, Pending Tasks board, manual RCA, troubleshooting
+- `callkaro-ai-auditor` for AI Auditor: audit strategy, filters, sampling, extra variables, Audit Reports (strategy and batch views), scores, issue severity, turning findings into fixes
 - `callkaro-chat-agents` for WhatsApp and Instagram chat agents
 - `callkaro-calls-api` for outbound calls, campaigns, schedules, history
 - `callkaro-webhooks` for realtime events like call ended and message status
@@ -31,14 +33,14 @@ I put these together after clicking through the dashboard and reading the docs e
 
 ### Claude Code plugin (recommended)
 
-This repo is a Claude Code plugin marketplace. One plugin, twenty skills.
+This repo is a Claude Code plugin marketplace. One plugin, twenty-two skills.
 
 ```
 /plugin marketplace add TejasLamba2006/callkaro-skills
 /plugin install callkaro-skills@callkaro
 ```
 
-Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all twenty skills, so updates come through `/plugin update`.
+Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all twenty-two-two skills, so updates come through `/plugin update`.
 
 ### npx skills CLI (any harness)
 

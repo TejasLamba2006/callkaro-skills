@@ -16,6 +16,7 @@ Structured QA and root-cause method: `callkaro-qa-framework`, `callkaro-agent-re
 - Monitor: why users hang up, where they drop.
 - Categorize: over 30s checks conversation quality, voice quality, transcription, hallucination. Under 30s adds early disconnect reason (heavy opening, hard words, long greeting).
 - Fix: open call in Fine Tune Prompt, clone a new version (never edit production), find the transcript moment, name the problem, ask an LLM for root cause, patch, recheck, deploy.
+- Details live in `callkaro-ai-auditor` and `callkaro-kpi-manager`.
 - AI Auditor: strategy picks which calls get scored, reports show callflow, postcall, transcriber accuracy plus cost, results page shows expected vs actual per issue.
 - KPI Manager: setup per agent, dashboard charts, RCA reports explain drops, Pending Tasks list fixes, Run Manual RCA on demand.
 

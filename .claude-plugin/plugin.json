@@ -36,7 +36,9 @@
     "./skills/callkaro-agent-review-debug/",
     "./skills/callkaro-qa-framework/",
     "./skills/callkaro-mcp/",
-    "./skills/callkaro-workflows/"
+    "./skills/callkaro-workflows/",
+    "./skills/callkaro-kpi-manager/",
+    "./skills/callkaro-ai-auditor/"
   ],
-  "version": "1.7.0"
+  "version": "1.8.0"
 }

@@ -278,17 +278,22 @@ CSV rows may carry `x_agent_id` and `x_schedule_at` to override per row.
 ## Simulations
 
 ```bash
-cku sim create <agentId> --name "cold call" --prompt "..." --criteria "..." \
+cku sim models                                           # models allowed for the simulated caller
+cku sim create <agentId> --name "cold call" --persona "Busy dealer in Pune" \
+  --prompt "..." --criteria "..." \
   --variables '{"lead_id":"900029","city":"Delhi"}' \
   --functions '[{"name":"context_setting","response":{"ok":true}}]'
 cku sim run <agentId> --tests <id1>,<id2> --versions <v1>,<v2> [--epoch 3] --wait
 cku sim runs <agentId>
 cku sim results <batchId> --wait --agent <agentId>
-cku sim update <testCaseId> --criteria "..."   # only the flags you pass are sent
+cku sim update <testCaseId> --persona "..." --criteria "..."   # only the flags you pass are sent
 cku sim delete <testCaseId> --yes
 ```
 
+- `--persona` sets `userPersona` (who the simulated caller is, tone, what they know), separate from `--prompt` (`userPrompt`, their goal and beats).
+- `sim models` lists the models that can play the simulated caller and marks the default.
 - `sim update --variables` / `--functions` **replace** the whole map / list.
+- `sim results` prints `GRADING FAILED` (and `--wait` exits 1) when the LLM grader crashed (`analysisStatus === 'failed'`), instead of misreporting it as a test failure.
 
 - `--variables` fills the agent's `{{placeholders}}` for that test. Give a JSON
   object (inline or `@vars.json`); numbers and arrays are
@@ -528,6 +533,56 @@ cku audit-strategies models
 cku audit-strategies create <agentId> --strategy "Check for consent before ..."
 cku secrets list
 cku secrets set MY_KEY          # hidden prompt; --stdin to pipe
+```
+
+## Workflows (`cku workflows`)
+
+```bash
+cku workflows schema                              # print full node/edge/condition reference
+cku workflows list [--search <text>] [--json]
+cku workflows get <id> [--json] [--file wf.json]
+cku workflows create "Lead follow-up" --file graph.json
+cku workflows import --file exported-wf.json [--name "Copy"]
+cku workflows update <id> [--name "New"] [--file graph.json]
+cku workflows validate [<id>] [--file graph.json] # server-side validation without saving
+cku workflows export <id> [--file wf.json]
+cku workflows duplicate <id> [--name "Copy"]
+cku workflows delete <id> --yes
+
+# Surgical client-side graph edits (fetch -> mutate -> PUT):
+cku workflows add-node <id> --type wait --after start-1 --set '{"minutes":30}'
+cku workflows set-node <id> <nodeId> --name "Day 1 call" --set '{"retries":2}'
+cku workflows remove-node <id> <nodeId> [--reconnect] --yes
+cku workflows connect <id> --from cond-1 --to end-1 --handle o_1
+cku workflows disconnect <id> --from cond-1 --handle o_1
+
+# Enrolled leads, step-by-step run timeline, and call journey:
+cku workflows leads <id> [--search <phone>] [--page 1]
+cku workflows lead <id> <phone>
+cku workflows run <id> <phone> [--json]
+cku workflows journey <id> <phone>
+```
+
+## Contacts / CRM (`cku contacts`)
+
+```bash
+cku contacts list [--search <text>] [--attr city=Pune] [--columns city,stage] [--assigned-to-me]
+cku contacts get <phone> [--json]
+cku contacts create <phone> --attr first_name=Rahul --attr city=Pune --channel whatsapp
+cku contacts update <phone> --attr stage=hot --clear callback_time
+cku contacts delete <phone> --yes
+cku contacts upload leads.csv [--ignore-unknown]
+cku contacts export [--attr stage=hot] [--fields phone_number,city] [--file out.csv]
+
+# Enroll contacts into a workflow or call them with a voice agent (always --dry-run first):
+cku contacts assign --workflow <id> --attr city=Pune --dry-run
+cku contacts assign --workflow <id> --phones +919876543210 --at "2026-12-31T09:30:00" [--force]
+cku contacts assign --agent <id> --attr stage=hot --window 10:00-19:00 --retries 2 --gaps 30,60
+
+# CRM attribute schema:
+cku contacts attributes list
+cku contacts attributes set lead_stage --type enum --label "Lead Stage" --options new,warm,hot
+cku contacts attributes delete lead_stage --yes
 ```
 
 ## JSON input: inline vs file

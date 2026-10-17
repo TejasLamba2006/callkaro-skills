@@ -98,6 +98,15 @@ From your own system, `POST https://api.callkaro.ai/workflow/assign`, header `X-
 
 Workflows, open one: Total Leads, Active, Completed, Failed, Cancelled, search by phone. Columns: Status, Current Step, Enrolled, Calls Attempted, Last Call, Duration, Cost. Click a row for the timeline: each step, call SID and outcome, API response, the branch taken and why, errors. Wrong path: open the timeline, look at the Conditions step, it shows the value each rule compared. Usual causes are an empty or differently spelled field, rule order, a last-call source tested before any Send Call, or a post-call variable the agent never extracts.
 
+## Terminal (`cku workflows` and `cku contacts`)
+
+Operate workflows and CRM contacts directly from the CLI (see `callkaro-cli`):
+
+- **Schema & CRUD:** `cku workflows schema`, `list`, `get <id>`, `create <name> --file graph.json`, `import --file wf.json`, `update <id>`, `validate [<id>] [--file graph.json]`, `export <id>`, `duplicate <id>`, `delete <id> --yes`.
+- **Surgical node edits:** `cku workflows add-node <id> --type <type> [--after <nodeId>] [--handle <exitId>] [--set <json>]`, `set-node <id> <nodeId> --set <json>`, `remove-node <id> <nodeId> [--reconnect] --yes`, `connect <id> --from <aId> --to <bId> [--handle <exitId>]`, `disconnect <id> --from <aId> [--handle <exitId>]`.
+- **Runs & debugging:** `cku workflows leads <id>`, `lead <id> <phone>`, `run <id> <phone> [--json]` (step-by-step timeline, `action_results` and run variables), `journey <id> <phone>` (every call in the workflow for that phone).
+- **Enrolling from CRM via CLI:** `cku contacts assign --workflow <id> [--phones a,b | --attr k=v] [--at <ISO>] [--force] --dry-run` (always preview with `--dry-run` first). Manage contacts and CRM attributes with `cku contacts list|get|create|update|delete|upload|export` and `cku contacts attributes list|set|delete`.
+
 ## Full spec
 
 `REFERENCE-official-spec.md` in this folder is CallKaro's own complete workflow spec (every field, layout rules, what import rejects, a full worked example). Read it before writing or editing a non-trivial workflow file, and treat it as the source of truth if it disagrees with the summary above. It is also published at https://docs.callkaro.ai/workflows/build-with-claude. Give the model the voice agent ids and CRM attribute names up front, or it returns placeholders. Import creates the workflow, fix the placeholder steps, then enroll.

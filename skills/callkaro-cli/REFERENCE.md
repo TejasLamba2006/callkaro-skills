@@ -87,6 +87,14 @@ Options:
 
 Subcommands: `list` `set` `remove` `rename`
 
+## `cku workflows`
+
+Subcommands: `schema` `list` `get` `create` `import` `update` `validate` `export` `duplicate` `delete` `leads` `lead` `run` `journey` `add-node` `set-node` `remove-node` `connect` `disconnect`
+
+## `cku contacts`
+
+Subcommands: `list` `get` `create` `update` `delete` `upload` `export` `assign` `attributes`
+
 ## `cku agents`
 
 Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced`
@@ -179,7 +187,7 @@ Subcommands: `create` `schedule` `list` `get` `status` `send-next-try` `send-unt
 
 ## `cku sim`
 
-Subcommands: `tests` `create` `update` `delete` `run` `runs` `results` `variables`
+Subcommands: `tests` `create` `update` `models` `delete` `run` `runs` `results` `variables`
 
 ## `cku audit-strategies`
 

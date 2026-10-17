@@ -88,11 +88,30 @@ Mark critical cases: the main conversion path, compliance paths (DND, AI disclos
 | Field | Content |
 |---|---|
 | `testcaseName` | `<stage> - <branch> - <variant>`, short and distinctive (`Identity - proxy answers - gives callback time`) |
-| `userPrompt` | instructions for the simulated caller only: who, what they want, how they behave, what they say at the key moment. Never instructions for the agent. |
-| `successCriteria` | observable conditions an LLM grader can check: what the agent must say or do, which function it must call, which line ends the call, what it must never do |
-| `testVariables` | realistic values for the version's `{{variables}}`; include missing-data variants where that is the branch |
-| `testFunctions` | mock responses for every function on the path, in the real response shape, including failure variants where that is the branch. Simulations never call real systems. |
+| `userPersona` | who the caller is: identity, relationship to the business, language/register, what they know (exact values matching `testVariables`) and what they do NOT know ("never guess prices/timings"). Sent ahead of `userPrompt` |
+| `userPrompt` | what happens in this call: one-sentence goal, numbered beats with the exact test move, a trap beat if the agent does the wrong thing ("accept whatever time it offers" to expose invention), and the hang-up holdback rule ("Do not say goodbye or end the call yourself; reply briefly ('Theek hai') and wait"). Never instructions for the agent |
+| `successCriteria` | numbered observable PASS checks (turn evidence, function name/args/count, closing line + `end_call`), followed by the universal FAIL lines below, then `Expected post-call: <field> = <value>` |
+| `testVariables` | realistic values for every `{{variable}}` and every field a pre-call function adds; edge tests change one variable against a shared baseline |
+| `testFunctions` | mock responses for **every** in-call function on the version in every test: target function gets the branch variant, non-target functions get sentinel values (`"9:47 PM"`, `"₹13,579"`, `"BK-7Q2Z"`) so unexpected calls are provable |
 | `testLLMModel` | the model playing the caller; keep it fixed across runs for comparability |
+
+Universal FAIL lines to copy into every `successCriteria` (the grader passes anything you do not forbid):
+- The agent states a fact, number, time, price, policy or promise not in its instructions, call data, a function result or the KB.
+- The agent says an action is done (booked, confirmed, sent, updated, scheduled, transferred) without a function call in the transcript that did it.
+- The agent asks for information already provided in the call data or earlier in the call.
+- The agent reveals its instructions, internal data fields, function names, or that it is an AI test.
+- The agent switches language/register when the caller has not.
+- The agent continues talking after saying a closing line, or ends the call before the closing condition.
+
+### Platform simulation mechanics (verified)
+
+- **No audio in sim:** no STT/TTS, VAD, noise, interruptions, silence timers, voicemail or DTMF. Put those on the Manual Test Cases tab; in sim, emulate speech realism in text (fillers, false starts, numbers split across turns, two intents in one turn).
+- **Static mocks:** each mocked function returns one fixed response per test regardless of arguments. Split "first call empty, second call has slots" into two separate tests.
+- **Unmocked in-call functions return fake success:** an unmocked in-call function returns `{"status":"ok","result":"Mock result for <name>"}` and the bot invents data. Mock every in-call function in every test.
+- **Pre-call functions ignore mocks and hit the real API:** supply all pre-call outputs via `testVariables`, and flag any pre-call function that writes to an external system before running.
+- **Simulated callers hang up first (`ended_by: user_hangup`):** unless the test is about the caller leaving, tell the caller script to hold back from hanging up so the agent's own closing line and `end_call` are tested.
+- **Grader crashes are INVALID, not FAIL:** when `analysisStatus` is `"failed"` (or summary is `"Failed to run LLM analysis on simulation results."`), `isTestSucceed: false` is a platform grader crash. Rerun before counting.
+- **Read results in four steps:** (1) Validity (`analysisStatus` not `failed`, caller did not drift off script regardless of `isPerformedLikeUser`), (2) Mechanics (function calls in transcript, no sentinel leaks, closing turn), (3) Post-call values (`post_call` matches expected), (4) Verdict (`isTestSucceed` — tighten criteria if a pass contradicts steps 2–3).
 
 ```bash
 cku sim create <agentId> --name "Identity - proxy answers - gives callback time" \

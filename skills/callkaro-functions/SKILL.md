@@ -18,7 +18,13 @@ Contracts, scope, order and patterns for custom function code. Skeleton code is 
 | `custom_post_call` | JavaScript | after post-call analysis | platform | `async function name(context)`. Appends exactly one entry to `context.functions_called`. |
 | Predefined | none | as configured | LLM or platform | `transfer`, `keep_call_on_hold`, `available` / `booking` (Cal.com only), `send_to_whatsapp`, `assign_chat_agent`. Team rule: do not use the `end` function; end calls through `end_call_msg` lines. |
 
-Injected helpers need no import. Python: `httpx`, `logger`, `x_secrets`, `JobContext` / `RunContext`. JavaScript: `axios`, `moment`, `lodash` as `_`, `console`, `sendEmail`, `x_secrets`. Always set HTTP timeouts. Never use `eval`, `exec`, dynamic imports, filesystem or process APIs. Only the first `def` in a Python body runs, so nest helpers and import inside the body.
+Injected helpers need no import. Python: `httpx`, `logger`, `x_secrets`, `JobContext` / `RunContext`, `send_email`. JavaScript: `axios`, `moment`, `lodash` as `_`, `console`, `sendEmail`, `x_secrets`. Always set HTTP timeouts. Never use `eval`, `exec`, dynamic imports, filesystem or process APIs. Only the first `def` in a Python body runs, so nest helpers and import inside the body.
+
+**Email helpers (`send_email` in Python pre/in-call, `sendEmail` in JS post-call):** neither raises on delivery failure — always `await` and check `result["status"] == "success"` (Python) or `result.status === "success"` (JS), keeping SMTP credentials in `x_secrets["SMTP_USERNAME"]` / `x_secrets["SMTP_APP_PASSWORD"]` and logging the outcome in `context.functions_called` without credentials.
+
+**In-call Python parameter types:** use scalar types only (`str`, `int`, `float`, `bool`, `None`) and annotate `-> dict`. Never use `dict`, `list`, `Any` or `Union` in parameter annotations (breaks strict tool schema); for nested payloads take `str` (JSON) and `json.loads` inside `try/except`.
+
+**`on_connected` sandbox:** signature is `async def <name>(ctx: JobContext, metadata: dict):`. Use `ctx.room`, `ctx.proc.userdata`, or `ctx.api` — `ctx.session`, `ctx.userdata` and `RunContext` are not available in `on_connected`.
 
 ## Execution order
 

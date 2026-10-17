@@ -194,5 +194,5 @@ backs every rule above with numbers from the platform itself:
 - [ ] Prompt deduplicated; labelled CALL DATA; no unfilled placeholders
 - [ ] Soniox list has no script-colliding language; min words matches the prompt (`callkaro-language-switching`)
 - [ ] Turn types handled: a question or "hmm" is never a refusal (`callkaro-conversational-agents`)
-- [ ] `<Wait>` tokens in `punctuations_to_remove`
+- [ ] `punctuations_to_remove` holds the default token list plus every in-call function name, e.g. `end_call` (`callkaro-voice-agents`, Team configuration defaults)
 - [ ] Tested by people who didn't build it, on real phone lines

@@ -18,7 +18,7 @@ Each layer depends on the one before it.
 3. **Functions.** Right type and scope for each. P0 loads data; other pre-calls replace the placeholders they own and none stays raw. In-call functions few and justified, gates in `function_calling_snippet`. Post-call functions follow the concurrency and logging rules. No function mentioned by the prompt is missing from the active scope.
 4. **Post-call variables and metadata.** Every metadata field the flow needs is used; every output the SOW asks for exists; descriptions self-contained and English; dispositions and `conversion_reason` match the SOW; exact values come from functions.
 5. **Data flow.** Trace one call end to end: metadata in, P0, each pre-call, each placeholder, in-call updates, post-call overrides, cleanup, webhook. Nothing read before it is written; nothing written twice by different owners.
-6. **Configuration against the SOW**: opening, endings and `end_call_msg`, silence, voicemail, time limit, background noise, language settings (`language_switch_min_words` equals the prompt rule), pronunciations, pre-formatting.
+6. **Configuration against the SOW**: opening, endings and `end_call_msg`, silence, voicemail, time limit, background noise, language settings (`language_switch_min_words` equals the prompt rule), pronunciations, pre-formatting, `punctuations_to_remove` (default token list plus every in-call function name; see `callkaro-voice-agents`).
 7. **Model-size flag**: an expensive, large model on a very small capability or prompt.
 
 Out of scope for review: LLM, STT and TTS selection (except flag 7) and hardcoded API keys in older functions.
@@ -55,7 +55,7 @@ Output format when not producing the workbook:
 | Design | agent stuck or bouncing between capabilities, branch with no home, switch at the wrong moment |
 | Prompt | contradictory behaviour across calls, a rule ignored because another overrides it, ambiguous instruction |
 | Function | wrong result, error, timeout, repeated side effects, agent claims an action that did not happen |
-| Configuration | call does not end (closing line not in `end_call_msg`), wrong language, silence handling, transcription or voice issues |
+| Configuration | call does not end (closing line not in `end_call_msg`), wrong language, silence handling, transcription or voice issues, voice reads out a token or function name (`end_call`, `<Wait>`) because it is missing from `punctuations_to_remove` |
 
 4. **Check existing text first.** Search the prompt and snippets for anything that already covers or contradicts the behaviour. Most "missing rules" are present but overridden elsewhere. Quote what you find.
 5. **Fix at the root, smallest change.** Prefer, in order: fix data or a pre-call function; fix design; remove or merge conflicting text; fix the function; add a rule only when one is genuinely missing. For a rule the agent keeps missing, deliberate double placement in prompt and snippet is allowed; contradictions between the two never are.

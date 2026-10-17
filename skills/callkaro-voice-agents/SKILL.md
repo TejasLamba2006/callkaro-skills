@@ -157,6 +157,14 @@ Starting points from the team that builds these agents. Where they differ from t
 - **Language fields**: `language_switching: true` for same-version implicit switching (the platform marks it legacy, but the backend runs the current implementation behind it); do not set `language_lockin_time`; leave `language_switching_v1` false; `switchableLanguages` is a different thing (hands the call to another published version). See `callkaro-language-switching`.
 - **Opening**: `speakfirst.value` 0 waits for the caller, 1 generates an opening, 2 speaks `customMsg`. If the platform speaks first, the prompt must say so and not repeat the greeting.
 - **Ending**: calls end only by speaking a line listed in `end_call_msg`, in every language the version speaks. Do not use the `end` function.
+- **Speech hygiene (every agent, unless the user says otherwise)**: models sometimes write control tokens, prompt markers or a function name into the reply text, and the voice reads them out ("Thank you for your time. end_call" was spoken on a live Auction Remarketing call). Two settings strip them before TTS; set both on every new version:
+  - `punctuations_to_remove`: start from this list (live on Auction Negotiations and Auction Remarketing, Oct 2026), then add the name of every in-call function the version has:
+    ```json
+    ["</turn>", "<end>", "<eos>", "<turn/>", "<turn>", "<turn|>", "<|eos|>", "<|eot|>", "<|im_end|>", "<|turn|>", "[DONE]", "[END]", "<Wait for user response>", "<Wait for response>", "<wait for user response>", "<Wait>", "<wait>", "<WAIT>", "multi_tool_use.parallel", "thought", "<channel|>", "end_call", "end_call()", "end_call ()"]
+    ```
+  - `customPronunciations`: map the same function names to `""` as a second guard (`"end_call": ""`). Send the whole object, not one key.
+  - Pair it with one line in `model_response_snippet`: "Never write function names such as end_call in your reply: call the function, do not say it." The settings hide the symptom; the snippet line stops the model producing it.
+  - Before pushing, read the target version's current list and merge; never overwrite a list someone added to on the dashboard.
 - **Silence**: for multilingual agents silence messages follow the language of the conversation at that moment.
 - **Publishing**: the first version in a language is published automatically; later ones only when asked. Work in a new version (`cku agents clone-version`, then `cku agents update --versions <new>`); never edit a live version; do not change routing, phone numbers or A/B rules unless asked.
 

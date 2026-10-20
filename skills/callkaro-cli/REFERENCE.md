@@ -48,6 +48,10 @@ Options:
 
 Subcommands: `login` `whoami` `probe` `logout` `api`
 
+## `cku admin`
+
+Subcommands: `login` `whoami` `logout` `clients` `client` `coworkers` `impersonate` `analytics` `costs` `recharges` `calls` `bots` `sentry` `recharge` `set` `pause` `resume` `clear` `agent` `numbers` `voice-cache` `api`
+
 ## `cku models`
 
 ```

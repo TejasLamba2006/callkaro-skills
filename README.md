@@ -40,7 +40,7 @@ This repo is a Claude Code plugin marketplace. One plugin, twenty-two skills.
 /plugin install callkaro-skills@callkaro
 ```
 
-Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all twenty-two-two skills, so updates come through `/plugin update`.
+Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all twenty-two skills, so updates come through `/plugin update`.
 
 ### npx skills CLI (any harness)
 

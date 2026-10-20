@@ -101,28 +101,58 @@ cku monitor clear           # back to your own account
 ### Working on an account you are not a user in
 
 If the client account you need is assigned to a *different* CallKaro user (your
-own login was removed from it), there is no login of your own to make. The
-route is the admin console's **"Login as this user"**:
+own login was removed from it), there is no login of your own to make. The route
+is the admin console's **"Login as this user"**, which the CLI exposes:
 
-1. Sign in to the admin console (your own admin account) and open the client
-   account. "Login as this user" issues a short-lived impersonation session.
-2. That session is **not** a `ck_` token and reaches **no** `/cli/*` route on
-   its own — the admin cookie and the impersonation token are both rejected by
-   `/cli/*`. The missing link is `POST /cli/auth/browser/approve`, which
-   converts the admin session into a real `ck_` token.
-3. Sign in with your own admin login and let the CLI mint a `ck_` token for the
-   client account, then scope the CLI to it.
+```bash
+cku admin login                   # sign in to the internal admin console
+cku admin clients                 # the client accounts you are assigned to
+cku admin impersonate <accountId> # mint a real ck_ token for one of them
+cku accounts use <client email>   # act on it
+```
 
-In practice the shortest path is: sign in as the user the client account *is*
-assigned to, check `cku monitor list` for the client account id, and
-`cku monitor use <id>`. The CLI already covers everything the admin console
-would give you, because the impersonated session ends up acting on the same
-client account. Reach for the admin console only when no login of yours is
-assigned to that client account at all.
+`cku admin impersonate` is the console's "Login as this user" in the terminal.
+It stores the token under the **client's own email**, scoped to that client
+account, and leaves your own account as the default:
 
-Never hand-roll the `curl` chain for this. If the CLI has no route for what you
-need, `cku dashboard api` covers the dashboard half; for `/cli/*` the right fix
-is a command in the CLI, not a script that juggles cookies.
+```
+$ cku admin impersonate 68e4e4da4a8835a2360e8aa6
+✔ Impersonating Spinny Closure (closure@spinny.com).
+  Use it:  cku accounts use closure@spinny.com
+```
+
+The token carries your admin identity, so it reaches no agents on its own —
+`cku monitor` scopes it to the client, exactly as it does a normal login. And it
+renews itself by impersonating again, so a client account reached this way does
+not die like a hand-copied token would.
+
+Behind the scenes the impersonation is four hops, not one: the console's
+impersonation token is a dashboard JWT and is rejected by `/cli/*`; the CLI
+completes the browser-approval exchange the web app's own login page performs,
+which is what produces a real `ck_` token. You never see that.
+
+The admin console is a **third credential**, separate from both the `ck_` token
+and the dashboard session:
+
+| | `cku login` | `cku dashboard login` | `cku admin login` |
+|---|---|---|---|
+| grants | `/cli/*` | `/auth/*`, `/v1/*`, `/v2/agents/` | `/monitor/*` |
+| token | `ck_…` | dashboard JWT | `access_token_monitor` cookie |
+| lifetime | until revoked | 24h | 24h |
+| renews itself? | yes, if the password was stored | yes | yes |
+
+`cku admin` also covers the console's write routes, which the client-facing
+`/cli/*` surface does not have:
+
+```bash
+cku admin recharge <id> --amount 10000   # real credits; the console has no undo
+cku admin set <id> --concurrency 300
+cku admin pause|resume|clear <id>
+cku admin agent pause|resume|clear <id> <agentId>
+cku admin numbers <ids...> --phone <n,n> [--mode add|replace]
+```
+
+Every write is confirmed, and needs `--yes` when there is no terminal.
 
 ## When the token stops working
 
@@ -147,6 +177,11 @@ cannot sign itself back in.
 Same shape as the dashboard session, different credential: `cku dashboard login`
 keeps its password for the same reason, and `--no-save-password` opts out of
 both.
+
+A token minted by `cku admin impersonate` has no password of its own, so it
+renews by impersonating again — which needs the admin console session. If that
+one is gone, re-run `cku admin login`; the client account recovers on its own
+after that.
 
 ## Using the MCP instead
 
@@ -721,6 +756,7 @@ Common ones:
 | `Not logged in. Run \`cku login\`` | no session for the account in effect |
 | `the stored token was rejected and could not be renewed` | the `ck_` token died and the account kept no password — run `cku login --password` to store one, or `cku login` to sign in again |
 | `Run \`cku dashboard login\`` | dashboard command (`kpi`, `analyzers`, `models`) with no dashboard session — a *separate* sign-in from `cku login`, and it expires after 24h |
+| `Run \`cku admin login\`` | `cku admin` command with no admin console session — a *third* sign-in, and it expires after 24h |
 | `--versions is required to update version field(s)` | version-level field without a target |
 | `Invalid value for "postcallmodel"` | that model is valid for `model` but not for post-call — the slots differ, see `cku models` |
 | `contains database-managed field(s)` | round-tripping `get --json` output |

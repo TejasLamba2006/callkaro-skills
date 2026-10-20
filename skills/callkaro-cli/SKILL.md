@@ -24,6 +24,10 @@ cku config          # endpoints, account in use, where that choice came from
 
 If not logged in: `cku login` (opens a browser; no password in the terminal).
 
+A stored token that the server stops accepting is renewed by the CLI itself, so
+a dead session is not automatically a dead end — see
+[When the token stops working](#when-the-token-stops-working).
+
 **Never invent ids.** Every id must come from a `list` call first. Ids are
 24-character hex strings; the backend rejects anything else with
 `Invalid id: not a valid id`.
@@ -93,6 +97,56 @@ cku monitor clear           # back to your own account
 ```
 
 `CK_ACCOUNT_ID=<id>` does the same for one process and wins over the stored choice. `cku login` and `cku logout` end monitoring. `cku whoami` and `cku config` show it when on. **Check `cku monitor current` before any write** if you did not set it yourself: it silently changes whose agents you are editing.
+
+### Working on an account you are not a user in
+
+If the client account you need is assigned to a *different* CallKaro user (your
+own login was removed from it), there is no login of your own to make. The
+route is the admin console's **"Login as this user"**:
+
+1. Sign in to the admin console (your own admin account) and open the client
+   account. "Login as this user" issues a short-lived impersonation session.
+2. That session is **not** a `ck_` token and reaches **no** `/cli/*` route on
+   its own — the admin cookie and the impersonation token are both rejected by
+   `/cli/*`. The missing link is `POST /cli/auth/browser/approve`, which
+   converts the admin session into a real `ck_` token.
+3. Sign in with your own admin login and let the CLI mint a `ck_` token for the
+   client account, then scope the CLI to it.
+
+In practice the shortest path is: sign in as the user the client account *is*
+assigned to, check `cku monitor list` for the client account id, and
+`cku monitor use <id>`. The CLI already covers everything the admin console
+would give you, because the impersonated session ends up acting on the same
+client account. Reach for the admin console only when no login of yours is
+assigned to that client account at all.
+
+Never hand-roll the `curl` chain for this. If the CLI has no route for what you
+need, `cku dashboard api` covers the dashboard half; for `/cli/*` the right fix
+is a command in the CLI, not a script that juggles cookies.
+
+## When the token stops working
+
+The `ck_` token is opaque and the server has **no refresh endpoint** — a token
+that is revoked or expired leaves exactly one way back in: sign in again. That
+is why `cku login --password` **stores the password** (plain text in the account
+file, mode 0600 — the same exposure as the tokens beside it). On a 401 the CLI
+signs in again silently, retries the request once with the new token, and
+writes the new token to disk. One renewal covers every request in that command.
+
+```bash
+cku login --password --email you@example.com   # stores the password; renews itself
+cku login --password --no-save-password         # opts out; a dead token then needs you
+```
+
+Without a stored password a rejected token fails with a message naming
+`cku login`. `CK_TOKEN` is never renewed — the environment owns that
+credential, and a 401 under `CK_TOKEN` means the token itself is wrong.
+`cku logout` drops the stored password with the token, so a signed-out account
+cannot sign itself back in.
+
+Same shape as the dashboard session, different credential: `cku dashboard login`
+keeps its password for the same reason, and `--no-save-password` opts out of
+both.
 
 ## Using the MCP instead
 
@@ -417,7 +471,8 @@ separate and neither works for the other.
 |---|---|---|
 | grants | `/cli/*` — agents, calls, numbers, batches | `/pending-tasks`, `/kpi-manager`, `/v1/*` |
 | token | `ck_…` | dashboard JWT (a cookie) |
-| lifetime | until logout | **24 hours**, no refresh endpoint |
+| lifetime | until logout or revocation | **24 hours**, no refresh endpoint |
+| renews itself? | yes, if the password was stored | yes, if the password was stored |
 
 The dashboard token expires after 24h and the server has no refresh endpoint.
 `cku dashboard login` therefore **stores the password by default** (plain text in
@@ -664,6 +719,7 @@ Common ones:
 |---|---|
 | `Invalid id: not a valid id` | invented or malformed id — run the `list` command |
 | `Not logged in. Run \`cku login\`` | no session for the account in effect |
+| `the stored token was rejected and could not be renewed` | the `ck_` token died and the account kept no password — run `cku login --password` to store one, or `cku login` to sign in again |
 | `Run \`cku dashboard login\`` | dashboard command (`kpi`, `analyzers`, `models`) with no dashboard session — a *separate* sign-in from `cku login`, and it expires after 24h |
 | `--versions is required to update version field(s)` | version-level field without a target |
 | `Invalid value for "postcallmodel"` | that model is valid for `model` but not for post-call — the slots differ, see `cku models` |

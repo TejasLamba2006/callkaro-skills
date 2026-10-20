@@ -29,8 +29,10 @@ Options:
 
 ```
 Options:
-  --password       use the classic email + password prompt instead
-  --email <email>  email address (with --password)
+  --password          use the classic email + password prompt instead
+  --email <email>     email address (with --password)
+  --no-save-password  don't keep the password (the token then cannot be
+                      renewed)
 ```
 
 ## `cku logout`

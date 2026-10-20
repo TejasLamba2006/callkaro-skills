@@ -154,6 +154,12 @@ cku admin numbers <ids...> --phone <n,n> [--mode add|replace]
 
 Every write is confirmed, and needs `--yes` when there is no terminal.
 
+**The per-client writes need a higher console role than FDE.** Reading a client
+account is allowed; changing one — recharge, concurrency, pause, queue clear —
+answers `Not Authorized!` on an FDE account. The console-wide routes
+(`voice-cache clear`, `numbers bulk-update`) do work. The CLI says which case it
+is, because the server words both the same way.
+
 ## When the token stops working
 
 The `ck_` token is opaque and the server has **no refresh endpoint** — a token

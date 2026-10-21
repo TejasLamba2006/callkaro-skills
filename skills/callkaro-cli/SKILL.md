@@ -154,6 +154,19 @@ cku admin numbers <ids...> --phone <n,n> [--mode add|replace]
 
 Every write is confirmed, and needs `--yes` when there is no terminal.
 
+**Function code goes through the dashboard, not `agents update`.** `cku agents update`
+refuses some function code ("This code can't be saved"); the dashboard's version
+save takes it. `cku admin impersonate` also stores a dashboard session for the
+client, so no browser is needed:
+
+```bash
+CK_ACCOUNT=<client email> cku dashboard api PUT "/v2/agents/<agentId>?version=<versionId>" --body @put_body.json
+```
+
+Send only the fields you are changing plus `commitMessage` (the dashboard does the
+same), then pull the version back and diff it. `/v2/agents/:id…` takes the cookie;
+only the bare `/v2/agents/` list takes the bearer, and the CLI picks for you.
+
 **The per-client writes need a higher console role than FDE.** Reading a client
 account is allowed; changing one — recharge, concurrency, pause, queue clear —
 answers `Not Authorized!` on an FDE account. The console-wide routes

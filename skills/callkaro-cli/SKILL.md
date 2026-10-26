@@ -390,7 +390,7 @@ cku sim models                                           # models allowed for th
 cku sim create <agentId> --name "cold call" --persona "Busy dealer in Pune" \
   --prompt "..." --criteria "..." \
   --variables '{"lead_id":"900029","city":"Delhi"}' \
-  --functions '[{"name":"context_setting","response":{"ok":true}}]'
+  --functions '[{"name":"context_setting","response":{"ok":true}}]'   # "mock":false runs the REAL function
 cku sim run <agentId> --tests <id1>,<id2> --versions <v1>,<v2> [--epoch 3] --wait
 cku sim runs <agentId>
 cku sim results <batchId> --wait --agent <agentId>
@@ -401,6 +401,7 @@ cku sim delete <testCaseId> --yes
 - `--persona` sets `userPersona` (who the simulated caller is, tone, what they know), separate from `--prompt` (`userPrompt`, their goal and beats).
 - `sim models` lists the models that can play the simulated caller and marks the default.
 - `sim update --variables` / `--functions` **replace** the whole map / list.
+- `--functions` entries are `{name, mock?, response?}`. `"mock": false` runs the agent's real function (never for WhatsApp functions), so treat it like `agents chat`: it has real side effects.
 - `sim results` prints `GRADING FAILED` (and `--wait` exits 1) when the LLM grader crashed (`analysisStatus === 'failed'`), instead of misreporting it as a test failure.
 
 - `--variables` fills the agent's `{{placeholders}}` for that test. Give a JSON
@@ -640,6 +641,13 @@ cku chat-agents update <id> --set '{"name":"X"}'
 cku audit-strategies list <agentId>
 cku audit-strategies models
 cku audit-strategies create <agentId> --strategy "Check for consent before ..."
+cku chat-audit models <agentId>                # WhatsApp agents: AI Auditor for chat
+cku chat-audit create <agentId> --strategy "..." --pct-per-day 20 --model <name>
+cku chat-audit update <agentId> <strategyId> --active|--disable
+cku chat-audit batch <agentId> <strategyId> --max 50   # audits now, uses credits
+cku chat-sim create <chatAgentId> --name "..." --persona "..." --prompt "..." --criteria "..."
+cku chat-sim run <chatAgentId> --tests <ids> --versions <ids> [--epochs 2]
+cku chat-sim results <runId>
 cku secrets list
 cku secrets set MY_KEY          # hidden prompt; --stdin to pipe
 ```
@@ -660,6 +668,7 @@ cku workflows delete <id> --yes
 
 # Surgical client-side graph edits (fetch -> mutate -> PUT):
 cku workflows add-node <id> --type wait --after start-1 --set '{"minutes":30}'
+# also: --type inbound (second entry, one per workflow), cancel, resume (branch ends; resume needs an inbound)
 cku workflows set-node <id> <nodeId> --name "Day 1 call" --set '{"retries":2}'
 cku workflows remove-node <id> <nodeId> [--reconnect] --yes
 cku workflows connect <id> --from cond-1 --to end-1 --handle o_1

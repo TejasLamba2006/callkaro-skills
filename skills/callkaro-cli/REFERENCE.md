@@ -195,6 +195,14 @@ Subcommands: `create` `schedule` `list` `get` `status` `send-next-try` `send-unt
 
 Subcommands: `tests` `create` `update` `models` `delete` `run` `runs` `results` `variables`
 
+## `cku chat-sim`
+
+Subcommands: `tests` `create` `update` `delete` `run` `runs` `results`
+
+## `cku chat-audit-strategies`
+
+Subcommands: `list` `get` `models` `create` `update` `delete` `batch`
+
 ## `cku audit-strategies`
 
 Subcommands: `list` `get` `filter-options` `models` `create` `update`

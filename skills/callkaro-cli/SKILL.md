@@ -166,6 +166,8 @@ CK_ACCOUNT=<client email> cku dashboard api PUT "/v2/agents/<agentId>?version=<v
 Send only the fields you are changing plus `commitMessage` (the dashboard does the
 same), then pull the version back and diff it. `/v2/agents/:id…` takes the cookie;
 only the bare `/v2/agents/` list takes the bearer, and the CLI picks for you.
+A success reply does not prove the field saved: `punctuations_to_remove` is accepted
+and dropped; send that list as `substrings_to_remove` (`callkaro-voice-agents`).
 
 **The per-client writes need a higher console role than FDE.** Reading a client
 account is allowed; changing one — recharge, concurrency, pause, queue clear —

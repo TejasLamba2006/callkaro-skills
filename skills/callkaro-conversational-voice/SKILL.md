@@ -133,7 +133,8 @@ layer, not the prompt ([Retell](https://www.retellai.com/blog/how-real-time-voic
 Backchannels ("mm-hmm") mean "keep going", not a bid for the turn
 ([Deepgram](https://deepgram.com/learn/backchannels-vs-interruptions-voice-agents)). On CallKaro,
 `<Wait>` in a prompt is only text: models sometimes echo it into speech, so add `<Wait>`, `<wait>`,
-`<Wait for response>` and `<Wait for user response>` to `punctuations_to_remove`.
+`<Wait for response>` and `<Wait for user response>` to `punctuations_to_remove` (over the API, send it as
+`substrings_to_remove`; see `callkaro-voice-agents`).
 
 ## 8. Test like a caller
 
@@ -194,5 +195,5 @@ backs every rule above with numbers from the platform itself:
 - [ ] Prompt deduplicated; labelled CALL DATA; no unfilled placeholders
 - [ ] Soniox list has no script-colliding language; min words matches the prompt (`callkaro-language-switching`)
 - [ ] Turn types handled: a question or "hmm" is never a refusal (`callkaro-conversational-agents`)
-- [ ] `punctuations_to_remove` holds the default token list plus every in-call function name, e.g. `end_call` (`callkaro-voice-agents`, Team configuration defaults)
+- [ ] `punctuations_to_remove` holds the default token list plus every in-call function name, e.g. `end_call`; pushed as `substrings_to_remove` and checked by pull-back (`callkaro-voice-agents`, Team configuration defaults)
 - [ ] Tested by people who didn't build it, on real phone lines

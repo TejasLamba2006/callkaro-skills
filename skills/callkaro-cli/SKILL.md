@@ -154,6 +154,8 @@ cku admin numbers <ids...> --phone <n,n> [--mode add|replace]
 
 Every write is confirmed, and needs `--yes` when there is no terminal.
 
+**Model lists are per account.** One account's `agent` slot can hold 26 models where another holds 44, so `cku models` and `agents update` validation must read the client's own catalogue. `cku admin impersonate` stores the client's dashboard session, and any login monitoring that client (`cku monitor use`, `CK_ACCOUNT_ID`) uses it automatically. `cku models` names the account its list came from; if it says `catalog.json`, there is no session for that client yet, so impersonate it first.
+
 **Function code goes through the dashboard, not `agents update`.** `cku agents update`
 refuses some function code ("This code can't be saved"); the dashboard's version
 save takes it. `cku admin impersonate` also stores a dashboard session for the

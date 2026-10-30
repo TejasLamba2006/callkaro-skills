@@ -12,7 +12,8 @@ Hinglish negotiation agent on CallKaro. Sources are linked inline and in the rep
 
 Paste-in templates and the full call-flow guideline: `callkaro-conversational-agents` (Section 0B, SAY vs composed lines) and `callkaro-language-switching` (Section 0A). This skill is the why and the evidence; those are the how.
 
-Companions: `callkaro-prompt-style` (plain-text layout, SSML pauses), `callkaro-voice-agents`
+Companions: `callkaro-prompt-style` (plain-text layout, SSML pauses, ElevenLabs v3/v4 audio tags for laughs,
+sighs, softness and pauses in `REFERENCE-elevenlabs-audio-tags.md`), `callkaro-voice-agents`
 (capabilities, functions, language settings), `callkaro-qa-grader` (grading calls).
 
 ## 1. The root cause: script-first prompts

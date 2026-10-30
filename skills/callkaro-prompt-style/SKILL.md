@@ -1,6 +1,6 @@
 ---
 name: callkaro-prompt-style
-description: Plain-text house style for CallKaro agent prompts. Use when writing or converting agent prompts, removing markdown, cutting prompt token counts, adding pauses or SSML breaks, writing the custom begin message, or checking placeholders still resolve after a rewrite.
+description: Plain-text house style for CallKaro agent prompts. Use when writing or converting agent prompts, removing markdown, cutting prompt token counts, adding pauses, SSML breaks or ElevenLabs v3/v4 audio tags ([laughs], [softly], [pause]), writing the custom begin message, or checking placeholders still resolve after a rewrite.
 ---
 
 # CallKaro Prompt Style
@@ -85,6 +85,12 @@ Related: the Omaxe real-estate agents open with a PRIORITY HIERARCHY block that 
 - Language-specific quirks belong in Section-style language config (e.g. Hindi: always "रहाहूँ" with no space, names in Devanagari, Hinglish register).
 
 ## Pauses: SSML tags (UNVERIFIED — read this before using them)
+
+**ElevenLabs v3 / v4 voices (`eleven_v3*`, `eleven_v4`, `eleven_v4_turbo`) do not support SSML at all.** Pauses and
+delivery come from audio tags in square brackets (`[pause]`, `[softly]`, `[sighs]`) plus ellipses. The full tag
+list, phone-call fit, and the CallKaro traps (secondary voice reads tags aloud, `end_call_msg` lines,
+`substrings_to_remove`) are in `REFERENCE-elevenlabs-audio-tags.md`. The SSML notes below apply only to older
+ElevenLabs models and other providers.
 
 The platform TTS appears to honor inline SSML, and live production agents in this account use it. But the official CallKaro skills repo (Mail-Daddy-AI/callkaro-skills, 414K chars, 44 files) contains **zero** mentions of `<break>`, `<prosody>`, `ssml`, or `<emphasis>` anywhere — not in the voice/transcriber guide, not in the 76K `AGENT-VERSION-REFERENCE.md` field list. So treat this as observed-in-the-wild, not documented-and-supported.
 

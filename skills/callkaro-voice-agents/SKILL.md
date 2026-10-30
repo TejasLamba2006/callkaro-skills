@@ -55,7 +55,9 @@ Post-call extraction recommended model: `callkaro/krishna-2.5`.
 
 ## Voice
 
-- ElevenLabs (~Rs 6): best for Hindi, English, Tamil. Supports Breaktime pauses.
+- ElevenLabs (~Rs 6): best for Hindi, English, Tamil. Older models (`eleven_flash_v2_5`) support Breaktime pauses.
+  `eleven_v3*` / `eleven_v4` / `eleven_v4_turbo` drop SSML and use audio tags (`[softly]`, `[laughs]`, `[pause]`);
+  see `callkaro-prompt-style/REFERENCE-elevenlabs-audio-tags.md`. A non-ElevenLabs secondary voice reads those tags aloud.
 - Cartesia (~Rs 4): best for other languages. Breaktime works.
 - Sarvam (~Rs 4): all languages, Breaktime lags.
 - Azure (~Rs 2): budget bots.

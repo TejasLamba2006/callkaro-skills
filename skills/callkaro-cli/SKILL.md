@@ -608,6 +608,18 @@ cku kpi assign "<taskId>" --to ai_fde --agent <agentId> --versions <v1,v2>
 
 cku kpi target --agent <id> --value 25  # KPI Manager target %
 cku kpi rca --agent <id> --since 2026-09-01 --until 2026-09-30
+
+# KPI Manager full config & scheduled KPI Report builder:
+cku kpi config <agentId> [--set @config.json] [--enable-rca|--disable-rca] [--enable-report|--disable-report]
+cku kpi report schema                   # full variable, dimension & element reference
+cku kpi report get <agentId> [--json]
+cku kpi report set <agentId> [--enable|--disable] [--recipients "a@b.com"] [--min-trigger 08:00] [--max-trigger 20:00] [--interval 24] [--set @report.json]
+cku kpi report add-var <agentId> --name booked --expression "is_connected && post_call.test_drive_booked == 'YES'" [--consider-for all,unique]
+cku kpi report remove-var <agentId> <name>
+cku kpi report add-element <agentId> --type tiles|bar|line|pie|funnel|table|text [--title "..."] [--refs "builtin:total_calls,..."] [--x-axis "dim:postcall:car_name"] [--content "..."] [--cells '[[...]]']
+cku kpi report remove-element <agentId> <elementId>
+cku kpi report preview <agentId> [--interval 168] [--json]   # evaluate live numbers & chart series now
+cku kpi report export <agentId> [--file report.pdf]          # render and download the A4 PDF report
 ```
 
 **There is no delete.** Do not look for one and do not try to synthesise it. A

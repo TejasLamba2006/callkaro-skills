@@ -66,7 +66,7 @@ Options:
 
 ## `cku kpi`
 
-Subcommands: `agents` `tasks` `create` `move` `set` `comment` `assignees` `assign` `target` `rca` `show` `history`
+Subcommands: `agents` `tasks` `create` `move` `set` `comment` `assignees` `assign` `target` `config` `report` `rca` `show` `history`
 
 ## `cku analyzers`
 

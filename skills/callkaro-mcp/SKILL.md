@@ -19,7 +19,7 @@ Default: **use whichever is already connected, and prefer the CLI for anything t
 
 | Task | Use | Why |
 |---|---|---|
-| Designing a new agent from scratch | MCP | `search_reference_versions` and the `get_agent_*_reference` tools have no CLI equivalent |
+| Designing a new agent from scratch | MCP | `search_reference_versions` has a CLI equivalent (`cku admin context search "<query>"`, needs `cku admin login`); the `get_agent_*_reference` tools have none |
 | Understanding one big version | MCP | `inspect_agent_version` returns one section at a time (script, functions, pathway graph, post-call). CLI `agents get` returns it all |
 | Looking up the authoring rules | MCP | ten `get_agent_*_reference` tools, one per topic (script, functions, post-call, LLM, STT, TTS, settings, translation, creation) |
 | Editing `voice_configuration`, `transcriber`, `functions`, `customPronunciations`, `preFormatVariables` | CLI | `cku agents update` merges these against the target version in code. The MCP expects you to send the complete object |

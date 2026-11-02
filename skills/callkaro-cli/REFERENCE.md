@@ -50,7 +50,7 @@ Subcommands: `login` `whoami` `probe` `logout` `api`
 
 ## `cku admin`
 
-Subcommands: `login` `whoami` `logout` `clients` `client` `coworkers` `impersonate` `analytics` `costs` `recharges` `calls` `bots` `sentry` `recharge` `set` `pause` `resume` `clear` `agent` `numbers` `voice-cache` `api`
+Subcommands: `login` `whoami` `logout` `clients` `client` `coworkers` `impersonate` `analytics` `costs` `recharges` `calls` `bots` `sentry` `recharge` `set` `pause` `resume` `clear` `agent` `numbers` `voice-cache` `bot-failures` `client-agents` `client-versions` `context` `api`
 
 ## `cku models`
 
@@ -70,7 +70,7 @@ Subcommands: `agents` `tasks` `create` `move` `set` `comment` `assignees` `assig
 
 ## `cku analyzers`
 
-Subcommands: `list` `show` `audit-reports` `audit-strategies` `summary` `calls` `call`
+Subcommands: `list` `show` `audit-reports` `audit-strategies` `batches` `batch-create` `batch-calls` `summary` `calls` `call`
 
 ## `cku config`
 
@@ -103,11 +103,11 @@ Subcommands: `list` `get` `create` `update` `delete` `upload` `export` `assign` 
 
 ## `cku agents`
 
-Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced` `commits` `commit` `diff` `revert` `save-v2` `delete-version` `duplicate`
+Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `set-languages` `postcall-info` `clone-version` `publish` `toggle-active` `ab` `ab-advanced` `commits` `commit` `diff` `revert` `save-v2` `delete-version` `duplicate`
 
 ## `cku chat-agents`
 
-Subcommands: `models` `templates` `template` `list` `get` `versions` `create` `update` `create-version` `publish`
+Subcommands: `diff` `models` `templates` `template` `list` `get` `versions` `create` `update` `create-version` `publish`
 
 ## `cku skills`
 
@@ -159,6 +159,49 @@ Options:
   --json                        raw JSON
 ```
 
+## `cku voice-preview`
+
+```
+Options:
+  --text <text>           text to speak
+  --agent <agentId>       read voice_configuration from this agent
+  --versions <versionId>  version of --agent
+  --set <json|@file>      voice_configuration JSON object
+  --file <path>           output audio file (default: voice_preview.mp3)
+```
+
+## `cku folders`
+
+Subcommands: `list` `create` `rename` `delete` `move`
+
+## `cku inbox`
+
+Subcommands: `list` `unread` `handoffs` `release` `contact` `clear` `deassign`
+
+## `cku wa-campaigns`
+
+Subcommands: `list` `analytics` `timeseries` `export` `send`
+
+## `cku finetune`
+
+Subcommands: `list` `buckets` `create-bucket` `jobs` `status` `start` `add-model` `cancel` `delete-record`
+
+## `cku team`
+
+Subcommands: `members` `roles` `create-role` `add-member` `update-member` `remove-member` `set-webhook`
+
+## `cku compliance`
+
+Subcommands: `list` `create` `delete`
+
+## `cku verified-numbers`
+
+Subcommands: `list` `add` `verify` `delete`
+
+## `cku integrations`
+
+Subcommands: `list` `create` `update` `delete` `sip` `aisensy` `hubspot` `shopify`
+
 ## `cku transcribers`
 
 ```
@@ -201,7 +244,7 @@ Subcommands: `tests` `create` `update` `delete` `run` `runs` `results`
 
 ## `cku chat-audit-strategies`
 
-Subcommands: `list` `get` `models` `create` `update` `delete` `batch`
+Subcommands: `list` `get` `models` `create` `update` `reports` `delete` `batch`
 
 ## `cku audit-strategies`
 

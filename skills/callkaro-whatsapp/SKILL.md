@@ -50,6 +50,8 @@ phone,body_0,body_1
 
 Test with your own number first. Follow-up block can nudge non repliers.
 
+CLI (`cku wa-campaigns`, dashboard login): `list`, `analytics <id>`, `timeseries <id> [--start --end]`, `export <id> [--fields a,b --include-chat --file out.csv]`, `send --set @body.json`. See `callkaro-cli`.
+
 ## History API
 
 `GET https://api.callkaro.ai/whatsapp/messages?user_phone_number=919876543210&limit=50` with `X-API-KEY`. Add `agent_phone_number` to scope to one sender. Returns oldest first, exactly what the agent sees.
@@ -61,3 +63,5 @@ Status truth: `read` and `delivered` mean arrived. `sent` means accepted by What
 ## Inbox
 
 WhatsApp Inbox page holds the same threads. Subscribe first or inbound never arrives.
+
+CLI (`cku inbox`, dashboard login): `list`, `unread`, `contact <phone>`, `handoffs`, `release <fromId> --channel whatsapp`, `deassign <phone>`, `clear <phone> --yes`. See `callkaro-cli`.

@@ -801,6 +801,28 @@ cku contacts attributes set lead_stage --type enum --label "Lead Stage" --option
 cku contacts attributes delete lead_stage --yes
 ```
 
+## Newer commands (admin console and dashboard credential)
+
+**Admin console** (`cku admin login` first; the `/monitor/*` cookie, not the `ck_` token):
+- `cku admin context list [--search <text>]`, `search "<query>" [--top-k 3] [--min-score 0.5]`, `add|update <versionId> --description <t> [--use-case <t>] [--tags a,b] [--set @f.json]`, `remove <versionId> --yes`. The FDE reference library on `fde-api.callkaro.ai`. Search before building a new agent, never for translation.
+- `cku admin bot-failures <agentId> [--api] [--response <text>] [--endpoint <url>] [--version <id>] [--start YYYY-MM-DD --end YYYY-MM-DD] [--limit n]`. Without `--response`: failed LLM/TTS response buckets (with `--api`: failed external API calls). With `--response`: the call ids that hit it.
+- `cku admin client-agents <clientId>`, `cku admin client-versions <agentId>`.
+
+**Dashboard credential** (`cku dashboard login`):
+- `cku voice-preview --text "<t>" (--agent <id> [--versions <v>] | --set <voice_configuration json>) [--file out.mp3]` writes TTS audio to a file.
+- `cku folders list|create <name>|rename <folderId> <name>|delete <folderId> --yes|move <folderId> --agents a1,a2`.
+- `cku agents set-languages <agentId> --languages en,hi --versions v1,v2` sets switchable languages on several versions in one call. `cku agents postcall-info <agentId>` lists post-call variables and drop-off reasons.
+- `cku analyzers batches`, `batch-create --set @body.json`, `batch-calls <batchId> [--page n] [--export]`.
+- `cku chat-agents diff <chatAgentId> (--versions vA,vB | --commits cA,cB)`; `cku chat-audit reports [--agent <id>] [--page n]`.
+
+**Platform groups** (dashboard credential; every command takes `--json`, destructive ones take `--yes`):
+- `cku inbox list|unread|handoffs [--channel c]|release <fromId> --channel c [--to-id id]|contact <phone> [--page n --limit n]|clear <phone> --yes|deassign <phone>`; `--number <agentPhone>` scopes to one sender. `release` is a DELETE with a body, so it needs `--channel`.
+- `cku wa-campaigns list|analytics <id>|timeseries <id> [--start --end]|export <id> [--fields a,b --include-chat --file out.csv]|send --set @body.json`.
+- `cku finetune list|buckets|create-bucket <name>|jobs|status <jobId>|start --set @body.json|add-model <jobId>|cancel <jobId>|delete-record <callId> --yes`.
+- `cku team members|roles|create-role <name> --permissions a,b|add-member --name --email [--password --permissions]|update-member <id> ...|remove-member <id> --yes|set-webhook [--url u --headers K:V,K2:V2 --events e1,e2] [--analysis-url u]`. The server field for the analysis webhook is spelled `callAalysisWebhook`; the CLI handles it.
+- `cku compliance list|create --gst --username --company [--gst-url --cin-url]|delete <id> --yes`; `cku verified-numbers list|add <phone>|verify <phone> --otp <code>|delete <id> --yes`. `add` sends the OTP, `verify` finishes it.
+- `cku integrations list|create --type t [--set @creds.json --tag t]|update <id>|delete <id> --yes|sip|aisensy [--agent id]|hubspot <agentId>|shopify --set @cfg.json`. `aisensy` without `--agent` lists campaigns.
+
 ## JSON input: inline vs file
 
 Two parsers, chosen by where the text came from:
@@ -909,4 +931,4 @@ For agent engineering work (`callkaro-agent-design`, `callkaro-agent-review-debu
 | Calls across a window | `cku calls list`, `cku calls export --start ...` |
 | Create or run simulation cases | `cku sim create`, `cku sim run --wait`, `cku sim results` |
 | Analytics | `cku analytics overview`, `performance`, `version <agentId>` |
-| Search reference versions for a new build | no command yet. MCP only: `search_reference_versions`, see `callkaro-mcp` |
+| Search reference versions for a new build | `cku admin context search "<query>"` (needs `cku admin login`; same index as MCP `search_reference_versions`) |

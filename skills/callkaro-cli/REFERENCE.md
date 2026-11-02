@@ -66,11 +66,11 @@ Options:
 
 ## `cku kpi`
 
-Subcommands: `agents` `tasks` `create` `move` `set` `comment` `assignees` `assign` `target` `config` `report` `rca` `show` `history`
+Subcommands: `agents` `tasks` `create` `move` `set` `comment` `assignees` `assign` `target` `config` `report` `rca` `show` `history` `import` `detach` `rca-reports` `rca-timeline` `rca-pdf` `rca-draft` `add-api-source` `add-python-source` `add-expr-source` `remove-source` `set-metric` `remove-metric`
 
 ## `cku analyzers`
 
-Subcommands: `list` `show` `audit-reports` `audit-strategies`
+Subcommands: `list` `show` `audit-reports` `audit-strategies` `summary` `calls` `call`
 
 ## `cku config`
 
@@ -103,7 +103,7 @@ Subcommands: `list` `get` `create` `update` `delete` `upload` `export` `assign` 
 
 ## `cku agents`
 
-Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced`
+Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `clone-version` `publish` `toggle-active` `ab` `ab-advanced` `commits` `commit` `diff` `revert` `save-v2` `delete-version` `duplicate`
 
 ## `cku chat-agents`
 
@@ -185,7 +185,7 @@ Subcommands: `status` `pause` `resume` `clear`
 
 ## `cku analytics`
 
-Subcommands: `overview` `performance` `version`
+Subcommands: `overview` `performance` `version` `failed-responses` `functions` `chat`
 
 ## `cku batches`
 
@@ -193,7 +193,7 @@ Subcommands: `create` `schedule` `list` `get` `status` `send-next-try` `send-unt
 
 ## `cku sim`
 
-Subcommands: `tests` `create` `update` `models` `delete` `run` `runs` `results` `variables`
+Subcommands: `tests` `create` `update` `models` `delete` `run` `runs` `results` `draft-from-call` `generate` `variables`
 
 ## `cku chat-sim`
 
@@ -206,3 +206,19 @@ Subcommands: `list` `get` `models` `create` `update` `delete` `batch`
 ## `cku audit-strategies`
 
 Subcommands: `list` `get` `filter-options` `models` `create` `update`
+
+## `cku dnd`
+
+Subcommands: `list` `add` `update` `remove` `import`
+
+## `cku feedback`
+
+Subcommands: `list` `create` `comment` `submit-review` `reopen` `resolve`
+
+## `cku knowledge`
+
+Subcommands: `list` `delete`
+
+## `cku ai`
+
+Subcommands: `function` `postcall` `audit-strategy` `callflow-summary` `workflow-code`

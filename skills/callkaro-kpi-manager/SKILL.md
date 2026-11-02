@@ -116,6 +116,29 @@ cku kpi report preview <agentId> [--interval 168] [--json]   # evaluate live num
 cku kpi report export <agentId> [--file report.pdf]          # render and download the A4 PDF report
 ```
 
+Data sources, metrics, RCA reports and cards:
+
+```bash
+cku kpi rca-reports [--agent <id>] [--since 7d] [--until today] [--source <src>] [--page 1] [--limit 20]
+cku kpi rca-timeline <agentId> [--since <date>] [--until <date>]   # day-by-day RCA run events
+cku kpi rca-pdf <agentId> <YYYY-MM-DD> [--manual] [--file out.pdf]
+cku kpi rca-draft <agentId> --prompt "focus on greeting and rebuttals" [--save]   # AI-draft the RCA prompt; --save writes it
+
+# Data sources and metrics. Each reads the full config, changes one entry, PUTs everything back.
+cku kpi add-api-source <agentId> --name crm --url https://host/api [--headers '{"k":"v"}'] [--params '[{"key_name":"a","value":"b"}]']
+cku kpi add-python-source <agentId> --name py --code @source.py [--params <json>] [--skip-verify]
+cku kpi add-expr-source <agentId> --name booked --expression "is_connected && post_call.x == 'YES'" [--consider-for all|unique]
+cku kpi remove-source <agentId> <name>
+cku kpi set-metric <agentId> --name booked_pct --source booked --value yes
+cku kpi remove-metric <agentId> <name>       # connected_to_conversion_percentage is locked; use `kpi target`
+
+cku kpi import --file rows.json              # bulk-create cards ([...] or {"rows": [...]})
+cku kpi detach "<taskId>" <attachmentUrl>    # remove one attachment
+cku kpi assign "<taskId>" --unassign
+```
+
+`add-api-source` always sends `method: POST` and puts `phone_number` first in the parameters. `add-python-source` verifies the code on the server before saving unless `--skip-verify`. Re-adding a name replaces that entry.
+
 ## Reading results
 
 Dashboard filter (agents, date range, then Search; Reset returns to all agents, last 7 days) drives History and Pending Tasks together. History, Charts: actual vs target per agent per metric per day. History, RCA: one card per agent per day (`GET /v1/audit-reports/daywise`) with the missed metrics (Expected, Actual, Gap), Automatic or Manual tag, the day-wise timeline (`GET /v1/audit-reports/daywise/:agentId/timeline`), and Preview or Download for the PDF (`GET /v1/audit-reports/daywise/:agentId/:rcaDate/pdf`).

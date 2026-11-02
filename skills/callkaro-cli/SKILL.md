@@ -290,6 +290,20 @@ cku agents toggle-active <id> --versions <versionId>
 `clone-version --set` only accepts `transcriber`, `secondary_transcriber`,
 `voice_configuration`, `secondary_voice_configuration`, `silence_language`.
 
+### Commits, diff, revert, v2 save (dashboard credential)
+
+```bash
+cku agents commits <id> [--versions <v>] [--page 1] [--limit 25]
+cku agents commit <commitId>
+cku agents diff <id> --commits <idA,idB>          # or --versions <vA,vB>
+cku agents revert <id> <commitId> --yes           # rewrites the version to that commit
+cku agents save-v2 <id> --versions <v> --set @patch.json --message "why"
+cku agents delete-version <id> <versionId> --yes
+cku agents duplicate <id> --name "Copy" [--versions v1,v2]
+```
+
+`revert` and `delete-version` change a live agent: confirm ids first. `save-v2` sends the `--set` object as is to `PUT /v2/agents`, so unlike `agents update` it does not merge wholesale keys; send the whole object.
+
 ### A/B testing
 
 ```bash
@@ -423,6 +437,15 @@ cku sim delete <testCaseId> --yes
 - `sim delete` needs `--yes` when there is no terminal; without it the command
   fails immediately instead of waiting for a keypress.
 
+### Drafting test cases with AI (dashboard credential)
+
+```bash
+cku sim draft-from-call <callId> --version <versionId> [--no-metadata] [--no-functions] [--save]
+cku sim generate <agentId> --hint "caller refuses to share OTP" [--version <v>] [--save]
+```
+
+Without `--save` the draft is only printed.
+
 ### Saved variable sets (dashboard credential)
 
 Named sets of test variables, shared across an agent's tests. These use the
@@ -463,7 +486,24 @@ simulation with `--functions` mocks for those agents.
 cku analytics overview
 cku analytics performance
 cku analytics version <agentId>
+
+# Diagnostics (dashboard credential)
+cku analytics failed-responses [--agent a1,a2] [--start 2026-10-01] [--end 2026-10-07] [--response <bucket>] [--limit 25]
+cku analytics functions [--agent a1,a2] [--start <date>] [--end <date>]
+cku analytics chat [--agent <chatAgentId>] [--start <date>] [--end <date>]
 ```
+
+`failed-responses --response <bucket>` lists the calls inside one bucket.
+
+### Call analyzers (dashboard credential)
+
+```bash
+cku analyzers summary <id> [--batch] [--severity High] [--dimension tone] [--since <d>] [--until <d>]
+cku analyzers calls <id> --below-80            # or --severity | --dimension + --category | --var-name + --var-value
+cku analyzers call <id> <callId>
+```
+
+See `callkaro-ai-auditor`.
 
 ## Voices and transcribers
 
@@ -609,6 +649,20 @@ cku kpi assign "<taskId>" --to ai_fde --agent <agentId> --versions <v1,v2>
 cku kpi target --agent <id> --value 25  # KPI Manager target %
 cku kpi rca --agent <id> --since 2026-09-01 --until 2026-09-30
 
+cku kpi assign "<taskId>" --unassign
+cku kpi import --file rows.json
+cku kpi detach "<taskId>" <attachmentUrl>
+cku kpi rca-reports --agent <id> --since 7d
+cku kpi rca-timeline <agentId>
+cku kpi rca-pdf <agentId> 2026-10-01 [--manual] [--file out.pdf]
+cku kpi rca-draft <agentId> --prompt "..." [--save]
+cku kpi add-api-source <agentId> --name crm --url https://host/api
+cku kpi add-python-source <agentId> --name py --code @source.py
+cku kpi add-expr-source <agentId> --name booked --expression "..."
+cku kpi remove-source <agentId> <name>
+cku kpi set-metric <agentId> --name m --source crm --value yes
+cku kpi remove-metric <agentId> <name>
+
 # KPI Manager full config & scheduled KPI Report builder:
 cku kpi config <agentId> [--set @config.json] [--enable-rca|--disable-rca] [--enable-report|--disable-report]
 cku kpi report schema                   # full variable, dimension & element reference
@@ -648,6 +702,34 @@ widen the blast radius further.
 
 `cku kpi rca` starts a real RCA run over a date range. It is a write against
 live agent configuration, not a dry run.
+
+## DND, feedback, knowledge, AI drafting (dashboard credential)
+
+```bash
+cku dnd list [--page 1] [--limit 20] [--search 91] [--since <d>] [--until <d>]
+cku dnd add +919999999999
+cku dnd update <id> +919888888888
+cku dnd remove <id1,id2> --yes                 # those numbers can be called again
+cku dnd import --phones +91..,+91..            # or --file numbers.txt (newline/comma list or JSON array)
+
+cku feedback list [--status processing|in-review|resolved] [--page 1]
+cku feedback create --call <callId> --version <v> --engineer <id> --name "Title" --issue "what went wrong"
+cku feedback comment <id> "text"
+cku feedback submit-review <id> --calls <url1,url2> --version-url <url> --comment "..."
+cku feedback reopen <id> --comment "..."
+cku feedback resolve <id> --comment "..."
+
+cku knowledge list
+cku knowledge delete <id> --yes
+
+cku ai function --prompt "..." [--name n] [--description d] [--type t] [--code @old.py] [--vars a,b] [--chat]
+cku ai postcall --set @body.json
+cku ai audit-strategy <agentId> --prompt "..." [--existing "..."]
+cku ai callflow-summary <agentId> --prompt "..." [--existing "..."]
+cku ai workflow-code --prompt "..." [--name "Step"] [--key step_1] [--existing @old.py]
+```
+
+`ai` commands print a draft only; they never save to an agent.
 
 ## Chat agents, audits, secrets
 

@@ -35,6 +35,19 @@ Start with one simple strategy and add checks after reading the first results.
 
 `cku audit-strategies list <agentId>`, `cku audit-strategies models`, `cku audit-strategies create <agentId> --strategy "..."`. See `callkaro-cli`. Reads are safe, creating or enabling one starts spending credits on live calls, so confirm first.
 
+Read results and draft with AI (dashboard session, `cku dashboard login`):
+
+```bash
+cku analyzers summary <strategyId> [--batch] [--severity High] [--dimension tone] [--since 2026-10-01] [--until 2026-10-07]
+cku analyzers calls <strategyId> --below-80                    # or --severity <s> | --dimension <d> --category <c> | --var-name <n> --var-value <v>
+cku analyzers calls <strategyId> --severity High --page 2 --limit 25
+cku analyzers call <strategyId> <callId> [--batch]             # one call's findings
+cku ai audit-strategy <agentId> --prompt "check greeting and consent" [--existing "<current text>"]
+cku ai callflow-summary <agentId> --prompt "..." [--existing "<current text>"]
+```
+
+`--batch` reads a batch audit instead of a strategy. `analyzers calls` needs exactly one filter. The `ai` commands only print a draft; nothing is saved until you create or update the strategy.
+
 ## Audit Reports
 
 Sidebar, Audit Reports. Choose Strategy or Batch, optionally pick agents, set dates (default last 7 days including today), Search. Reset clears the agent filter and restores dates.

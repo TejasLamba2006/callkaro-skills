@@ -84,7 +84,20 @@ decisions, simulation annotations, function calls, or backend data.
 Related: the Omaxe real-estate agents open with a PRIORITY HIERARCHY block that resolves overlapping rules by explicit precedence (hard opt-out > pricing > primary flow). Use the same shape when rules genuinely conflict — a written precedence list beats hoping the model infers one.
 - Language-specific quirks belong in Section-style language config (e.g. Hindi: always "रहाहूँ" with no space, names in Devanagari, Hinglish register).
 
-## Pauses: SSML tags (UNVERIFIED — read this before using them)
+## Pauses: SSML breaks vs `[bracket]` audio tags
+
+Two different mechanisms. Pick by voice model, never mix them in one prompt for one voice.
+
+| Voice | Pause / delivery mechanism | Example |
+|---|---|---|
+| ElevenLabs v2.5 (`eleven_flash_v2_5`), Cartesia, Sarvam | SSML `<break time="0.5s"/>`, or punctuation | `ठीक है।<break time="0.5s"/> तो price...` |
+| ElevenLabs v3/v4 (`eleven_v4_turbo`, `eleven_v3_conversational`) | `[bracket]` audio tags, ellipses | `[pause] तो... क्या इसी price पर deal final करें?` |
+
+- SSML on v3/v4 is not read as a pause; use `[pause]`, `[short pause]`, `[long pause]` or `...` instead.
+- `[softly]`, `[sighs]`, `[laughs]` are v3/v4 only. On any other voice they are spoken aloud.
+- When the voice moves from v2.5 to v3/v4, convert every `<break>` to a tag or ellipsis. When it moves away
+  from v3/v4, strip the tags (see `callkaro-voice-agents`, `substrings_to_remove`).
+
 
 **ElevenLabs v3 / v4 voices (`eleven_v3*`, `eleven_v4`, `eleven_v4_turbo`) do not support SSML at all.** Pauses and
 delivery come from audio tags in square brackets (`[pause]`, `[softly]`, `[sighs]`) plus ellipses. The full tag

@@ -71,6 +71,26 @@ Everything else becomes a goal plus one short example line the model may say in 
   [Dapta](https://dapta.ai/blog-posts/best-ai-voice-agents/)). In Hindi use Hindi number words, and
   put a space before the punctuation after है (see `callkaro-voice-agents`, Hindi TTS).
 
+## 3b. ElevenLabs v3 and v4 audio tags
+
+Full catalog, phone-call fit per tag, and CallKaro traps: `callkaro-prompt-style/REFERENCE-elevenlabs-audio-tags.md`.
+
+- v3 and v4 read natural-language cues in square brackets as delivery direction: `[softly]`, `[sighs]`,
+  `[pause]`, `[warm, unhurried]`. v4 accepts any plain-English cue, but the proven tags in the reference
+  are the safe default. Tags replace SSML: `<break time="0.5s"/>` does nothing on v3/v4.
+- v2.5 (`eleven_flash_v2_5`, `eleven_flash_v2`) and other providers (Sarvam, Smallest, Cartesia, Azure) do
+  not read tags. They speak them aloud. Use SSML breaks or punctuation there, and never tags.
+- The `voice_model` IDs CallKaro exposes in the dashboard bundle: `eleven_v4_turbo` (real-time v4),
+  `eleven_v3_conversational`, `eleven_flash_v2_5`, `eleven_flash_v2`. Confirm the exact list on the account
+  with `cku voices --provider "Eleven Labs"` before writing a model name into a prompt.
+- Prompt-template collision: `[amount A]`-style placeholders use square brackets too. Audio tags are lowercase
+  and sit right before or after the phrase they change (`[softly] जी, समझ सकता हूँ।`, `[short pause]`).
+  Never leave an unreplaced `[placeholder]` in spoken text, and never put a tag inside a name, figure or date.
+- Phone calls: pick subtle tags. Use `[warmly]`, `[softly]`, `[empathetic]`, `[pause]`, `[short pause]`,
+  `[slowly]`, `[sighs]`, `[chuckles]`, `[clears throat]`, `[hesitates]`. Skip SFX and shouting (`[applause]`,
+  `[shouts]`, `[light rain]`) unless the call script asks for them.
+- Ration it: at most one tag per turn, and none on most turns. Tags go in code-held lines where possible.
+
 ## 4. Show, don't only tell: example exchanges
 
 Rules alone produce rule-shaped speech. Add 4 to 6 short example exchanges: a happy path, an
@@ -127,6 +147,8 @@ multi-prompt agent the base prompt plus the current capability are both sent eve
     calls; verbatim per-language rows for their lines fixed it (a gpt-4.1 capability did not drift).
 
 ## 7. Interruptions and turn-taking
+
+Manual interruption duration can be tuned per capability or node in multi-prompt and pathway agents (`capabilities[i].vad_configuration.manual_interruption_duration`, 0.3–5s, default 1.2s; all other VAD keys inherit from the version), so a disclosure or T&C read can resist barge-in while a negotiation node stays fast. See `callkaro-voice-agents`.
 
 Stop, listen, respond; never keep reading after a barge-in, and never restart the cut sentence
 ([Vapi](https://docs.vapi.ai/prompting-guide)). Much of "feels human vs robotic" is the turn-taking

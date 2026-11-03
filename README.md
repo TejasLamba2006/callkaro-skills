@@ -103,6 +103,8 @@ All content comes from https://docs.callkaro.ai (132 pages, checked Sept 2026) p
 
 The general voice-agent guidance in that skill is summarised from these articles and docs. Thanks to their authors:
 
+- [ElevenLabs: Audio Tags List](https://elevenlabs.io/blog/elevenlabs-audio-tags-list)
+
 - [LiveKit: Prompting voice agents to sound more realistic](https://livekit.com/blog/prompting-voice-agents-to-sound-more-realistic)
 - [Vapi: Voice AI Prompting Guide](https://docs.vapi.ai/prompting-guide)
 - [Ultravox: Prompting Guide](https://docs.ultravox.ai/gettingstarted/prompting)

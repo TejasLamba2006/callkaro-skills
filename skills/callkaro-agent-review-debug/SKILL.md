@@ -57,6 +57,11 @@ Output format when not producing the workbook:
 | Function | wrong result, error, timeout, repeated side effects, agent claims an action that did not happen |
 | Configuration | call does not end (closing line not in `end_call_msg`), wrong language, silence handling, transcription or voice issues, voice reads out a token or function name (`end_call`, `<Wait>`) because it is missing from `punctuations_to_remove` |
 
+Interruption and silence-STT checks (config and voice layer):
+
+- Agent cuts itself off, or ignores barge-in, in one phase only: check `capabilities[i].vad_configuration.manual_interruption_duration` (**Capability VAD Overrides** / **Node VAD Overrides**, 0.3–5s) on the active capability or node first, then version-level `vad_configuration`. Version-wide tuning alone will not explain a single-phase fault.
+- Caller heard only after two "hello?" silence prompts: the runtime switches from the primary `transcriber` to `secondary_transcriber` after the 2nd silence message fires. If speech starts transcribing only after silence #2, the primary transcriber failed to pick up the caller's audio and `secondary_transcriber` took over. Check the call log for the transcriber switch and verify every agent has `secondary_transcriber` set to a different provider with matching language.
+
 4. **Check existing text first.** Search the prompt and snippets for anything that already covers or contradicts the behaviour. Most "missing rules" are present but overridden elsewhere. Quote what you find.
 5. **Fix at the root, smallest change.** Prefer, in order: fix data or a pre-call function; fix design; remove or merge conflicting text; fix the function; add a rule only when one is genuinely missing. For a rule the agent keeps missing, deliberate double placement in prompt and snippet is allowed; contradictions between the two never are.
 6. **Verify.** Apply in a NEW version (`cku agents clone-version`, then `cku agents update --versions <new>`). Rerun the failing case 5 times plus related regression cases; compare with the old version.

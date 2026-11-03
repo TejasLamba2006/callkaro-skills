@@ -22,7 +22,9 @@ Pick Basic for prototypes, Advanced for real work, Pathway when the flow has str
 
 **`systempromptType` routing trap:** `systempromptType` is in the agent-document allow-list, which doesn't store it — sending `systempromptType` alone on `POST /v2agent` or `PUT /v2agent/:id` drops it and leaves the version at `0`. Always express the type structurally (`capabilities[]` for type 2, plus `node_type`/`transitions`/`extract_variables`/`when_to_jump` for type 3; `role`/`goal`/`callFlow` for type 1) and empty the unused types' script fields so type inference cannot misclassify the version.
 
-**Per-capability `endpointing` (types 2 and 3):** each capability/node accepts `"endpointing": { "mode": "fixed" | "dynamic", "min_delay": 0.5, "max_delay": 3 }` (`min_delay` 0–1s reduces premature cutoffs; `max_delay` 0–6s caps wait; `dynamic` adapts within those bounds). Send the whole `endpointing` object when updating.
+**Per-capability `endpointing` and `vad_configuration` (types 2 and 3):** each capability/node in `capabilities[]` accepts:
+- `"endpointing": { "mode": "fixed" | "dynamic", "min_delay": 0.5, "max_delay": 3 }` (`min_delay` 0–1s reduces premature cutoffs; `max_delay` 0–6s caps wait; `dynamic` adapts within those bounds). Send the whole `endpointing` object when updating.
+- `"vad_configuration": { "manual_interruption_duration": 1.2 }` (dashboard label **Capability VAD Overrides** / **Node VAD Overrides**, range `0.3`–`5`s, step `0.1`, default `1.2`s). Overrides the version-level `vad_configuration.manual_interruption_duration` for that capability or node only; all other VAD parameters are inherited from the version. Use a higher duration on disclosure, T&C, or number read-out nodes so the caller hears the whole line, and a lower duration on open Q&A and negotiation nodes for fast barge-in.
 
 **UI fields that may not persist:** `dtmf_collection_enabled` and `callPropertyMapping` return HTTP 200 on write but are not declared on the version schema in some deployments and silently drop. Always read the version back (`cku agents get <id> --versions <vid> --json`) to verify they round-tripped before promising them.
 
@@ -56,8 +58,10 @@ Post-call extraction recommended model: `callkaro/krishna-2.5`.
 ## Voice
 
 - ElevenLabs (~Rs 6): best for Hindi, English, Tamil. Older models (`eleven_flash_v2_5`) support Breaktime pauses.
-  `eleven_v3*` / `eleven_v4` / `eleven_v4_turbo` drop SSML and use audio tags (`[softly]`, `[laughs]`, `[pause]`);
-  see `callkaro-prompt-style/REFERENCE-elevenlabs-audio-tags.md`. A non-ElevenLabs secondary voice reads those tags aloud.
+  `eleven_v3*` / `eleven_v4` / `eleven_v4_turbo` drop SSML and use natural-language `[bracket]` audio tags
+  (`[softly]`, `[laughs]`, `[pause]`). Model guidance and phone-call tag picks: `callkaro-conversational-voice`
+  (section 3b), with the full catalog in `callkaro-prompt-style/REFERENCE-elevenlabs-audio-tags.md`.
+  A non-ElevenLabs secondary voice reads those tags aloud.
 - Cartesia (~Rs 4): best for other languages. Breaktime works.
 - Sarvam (~Rs 4): all languages, Breaktime lags.
 - Azure (~Rs 2): budget bots.
@@ -177,6 +181,7 @@ Starting points from the team that builds these agents. Where they differ from t
 - **Ending**: calls end only by speaking a line listed in `end_call_msg`, in every language the version speaks. Do not use the `end` function.
 - **Speech hygiene (every agent, unless the user says otherwise)**: models sometimes write control tokens, prompt markers or a function name into the reply text, and the voice reads them out ("Thank you for your time. end_call" was spoken on a live Auction Remarketing call). Two settings strip them before TTS; set both on every new version:
   - **Save it as `substrings_to_remove`.** The dashboard labels the list "Punctuations to remove", but `PUT /v2/agents/<a>?version=<v>` with a `punctuations_to_remove` key answers "Agent Updated Successfully!" and stores nothing (verified on Auction Negotiations, 27 Oct 2026). Send the list under `substrings_to_remove` (the CLI validator checks that key too), then pull the version back and confirm `substrings_to_remove` holds it. Live versions may show both keys with the same list; read both before merging.
+  - If the version moves from ElevenLabs v3/v4 to Sarvam, Smallest, Cartesia or v2.5, first remove every `[pause]`, `[sighs]`, `[softly]` and other `[bracket]` audio tag from the prompt and the begin message. Those voices speak the tag text aloud. Add tag names to the removal list only as a safety net; the prompt is the real fix.
   - `punctuations_to_remove` / `substrings_to_remove`: start from this list (live on Auction Negotiations and Auction Remarketing, Oct 2026), then add the name of every in-call function the version has:
     ```json
     ["</turn>", "<end>", "<eos>", "<turn/>", "<turn>", "<turn|>", "<|eos|>", "<|eot|>", "<|im_end|>", "<|turn|>", "[DONE]", "[END]", "<Wait for user response>", "<Wait for response>", "<wait for user response>", "<Wait>", "<wait>", "<WAIT>", "multi_tool_use.parallel", "thought", "<channel|>", "end_call", "end_call()", "end_call ()"]
@@ -210,14 +215,38 @@ Call initiation: user speaks first, agent natural, or agent with custom message 
 ### Silence settings: three knobs, not one
 
 - `silence_wait` (seconds before a silence prompt fires) — most agents in the account run 4–8s; long negotiation bots sit at 6–8s
-- `silence_count` (how many consecutive silent gaps before prompting) — 2 is the common floor, 3–5 for patient/browsing flows
+- `silence_count` (how many consecutive silent gaps before prompting, dashboard label "Silence Message Count", default 2) — 2 is the common floor, 3–5 for patient/browsing flows
 - `silence_mode` — `custom` (your own `silence_prompts`) vs `dynamic` (platform free-generates an unscripted line) vs `ignore`
+
+**Transcriber switching after 2nd silence message:** when the caller appears silent and the 2nd silence message fires, the runtime switches from the primary `transcriber` to `secondary_transcriber` (in addition to failing over on provider error). This recovers calls where the primary STT failed to transcribe the caller's audio while they were actually speaking. Always configure `secondary_transcriber` with a different provider and matching language, and keep `silence_count` at 2 or higher so the failover can fire before the call disconnects.
+
+### Manual interruption (`vad_configuration`, version level and per capability/node)
+
+Version-level `vad_configuration` exposes:
+
+- `manual_interruption` (bool, default `true`): enables the explicit interruption path.
+- `manual_interruption_duration` (seconds, 0–10, default `1.2` in the UI / `1.6` in the API schema): continuous caller speech length needed before the agent pauses output.
+- `interrupt_speech_duration` (seconds, default `0.5`) and `interrupt_min_words` (0–4, default `3`): general barge-in tuning.
+
+In multi-prompt (type 2) and pathway (type 3) agents, each entry in `capabilities[]` can override manual interruption duration via `"vad_configuration": { "manual_interruption_duration": <0.3..5> }` (**Capability VAD Overrides** / **Node VAD Overrides** in the dashboard; all other VAD keys inherit from the version). Set a longer duration on greeting/disclosure/OTP-readout stages and a shorter duration (`0.5`–`0.8`s) on negotiation and open Q&A stages.
 
 Prefer `custom` with two fixed, on-brand lines. `dynamic` generates plausible-sounding but off-script filler that lands before your real greeting and reads as a double opener — this is a real, confirmed production failure mode. Also remember the related contentless-input trap: a bare "haan"/silence is not a yes, so silence_count and the prompt text must agree with your "re-ask once, then advance" rules.
 
 ### TTS caching strategy, by call shape
 
 `caching_strategy` in the account split by flow length: `response` (cache the whole LLM response) dominated long negotiation and qualification agents, `sentence` appeared on mid-length reminder flows, `none` on short/opener-heavy or highly dynamic agents. Full-response caching is lowest latency but wrong when the same prompt text can resolve to different spoken content (any prompt that embeds a changing price or variable).
+
+## IVR nodes (pathway type 3 only)
+
+`node_type: "ivr"` nodes run before the LLM starts: TTS plus DTMF, no STT, no LLM. Pathway agents only (`systempromptType: 3`). Exactly one `is_starting: true` node, the first IVR node.
+
+- `ivr_config`: `message` (supports `{{var}}`), `timeout_secs` (default 8), `max_retries` (default 2, must be at least 1), `skip_input`, `hangup_after_message`, `no_input_next`, `invalid_key_next`, `options: [{key: "0-9"|"*"|"#", next_capability}]`.
+- `conditions` (metadata-only, expression type, first match wins) route before DTMF. `extract_variables` are not available here.
+- Once the LLM phase starts, IVR nodes cannot be reached via `switch_capability`.
+- `use_ivr_postcall: true` plus `ivr_postcall[]` (`name`, `value`, `type`) sets static post-call values for pure IVR calls. Always set `conversation_status` and `disposition_reason`.
+- Terminal nodes: `hangup_after_message: true`, not empty `options`.
+
+Full reference: `callkaro-skills-official` `skills/callkaro/skill/voice-agents/ivr-nodes.md`.
 
 ## Live lessons (OTP verification agent, Sept 2026)
 

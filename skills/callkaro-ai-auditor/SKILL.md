@@ -67,6 +67,12 @@ Severity: Critical (review now), High (soon), Medium (when improving the agent),
 
 Issue panel: Problem, Severity, Proof (call evidence), Expected, Actual, Recommended Fix. Categories: Transcription Issues, Function Call Issues, Postcall Variable Issues, Callflow Adherence Issues, System Log Errors. Extra variable values show in the same panel. Re-transcription (when available) compares the call to the improved transcript, which separates a transcription fault from agent behaviour.
 
+## WhatsApp chat audits
+
+Chat agents use `cku chat-audit` (alias of `cku chat-audit-strategies`): `list`, `get`, `models`, `create --strategy ... --pct-per-day|--max-per-day`, `update`, `delete`, `batch <agentId> <strategyId> --max n` (1-500, uses credits). Strategies run daily at 5 AM IST and audit only messages since each conversation's last audit, clear or handover.
+
+The auditor does not read the agent prompt or version. It judges against `--strategy` text plus `--chatflow-summary` (stages, required actions, hand-off rules, intended outcome, max 40,000 chars). Set it on every strategy. `audit_filters` are contact filters (`contact_created_from/_to`, `contact_updated_from/_to`, `attributes`); get attribute names from `cku contacts attributes list` and ask the user before filtering. Batch "No new conversations to audit" is normal.
+
 ## Turning findings into fixes
 
 1. Read Proof, Expected, Actual and Recommended Fix.

@@ -74,6 +74,17 @@ Observed, not a rulebook; conventions are still forming.
 - Every boundary needs a clear condition: where one stage ends and the next begins.
 - Together they must cover every branch: list them (busy, wrong person, not interested, agrees, objects, function fails...) and confirm each has a home and an exit.
 
+## Per-stage endpointing and interruption
+
+Decide turn-taking per stage, not once per agent. Set `endpointing` and per-capability/node manual interruption (`capabilities[i].vad_configuration.manual_interruption_duration`, 0.3–5s, default 1.2s; all other VAD fields inherit from the version) in the design next to each capability or node:
+
+- Stricter interruption (higher `manual_interruption_duration`, e.g. 1.5–2.5s) on stages where the caller must hear the whole line: greeting and disclosure, compliance or T&C read-outs, number or OTP read-backs.
+- Looser interruption (lower `manual_interruption_duration`, e.g. 0.5–0.8s) on open Q&A and negotiation, where fast barge-in makes the agent feel responsive.
+
+## IVR nodes (pathway agents only)
+
+For `systempromptType: 3` agents, use an IVR node (`node_type: "ivr"`, `is_starting: true` on the first one) for deterministic pre-LLM steps: language menus, consent gates, DTMF routing, fixed announcements. No transcript, no LLM, no STT during the IVR phase. Use LLM nodes for anything needing free-form speech. Full field reference: `callkaro-voice-agents`.
+
 ## Precompute everything knowable before the call
 
 If a decision can be made from metadata before the call starts, make it in a pre-call function, not in the prompt. An if/else ladder in a prompt works, but not reliably: the LLM approximates logic, it does not execute it. The function computes the branch and injects only the result: the right script block, the right line, the right price in words (patterns in `callkaro-functions`).

@@ -39,6 +39,14 @@ DONE: question answered and customer confirms, or says not interested.
 
 LLM Model: pick model and temperature. Conversation and Features: greeting, fallback, handoff to human. Follow-Ups: nudge silent chats, stop when DONE state hits. Webhook: per agent events.
 
+## Agent modes
+
+`agentMode` is fixed at creation. Basic is a single prompt plus a model. Advanced (`agentMode: "advanced"`) builds the prompt from `role`, `goal`, `instructions`, `rebuttals` and a `flowGraph` of numbered steps (`text`, `interactive`, `template`, `ask`, `function`, `end`, `global`, condition branches). The model follows the steps; code sends exact messages and fills variables. `flowGraph` is replaced whole on each save; publish refuses unconnected or empty steps. Max 150 steps, 12 exits per step.
+
+Workflow (`agentMode: "workflow"`) has no prompt and no model. Code walks the graph on every inbound message: Python `code` steps (with `async def run():`, timeout 1-30 s, success/failure exits), condition routing, contact updates, sends, and `assign_agent` / `assign_version` hand-offs to a Basic or Advanced agent. Graph may not loop; run capped at 40 steps and 60 s. Use for keyword or button menus, order lookups, spam limits and routing.
+
+Full step tables and create examples: `chat-agents-advanced.md` and `chat-agents-workflow.md` in `callkaro-skills-official`. Testing: `chat-simulations/chat-simulation-playbook.md`.
+
 ## Functions
 
 Overview, Custom Functions, Send template, Send or Schedule Call, Send Image Document Video Audio. Always wire the prompt trigger to the function or it stays dead.

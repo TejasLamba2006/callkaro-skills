@@ -5,6 +5,16 @@ description: A standard way to QA a CallKaro voice agent version. Use when plann
 
 # CallKaro Agent QA Framework
 
+## WhatsApp chat agents
+
+Same method, chat substitutions. Read `chat-simulations/chat-simulation-playbook.md` and `chat-simulations/how-chat-simulation-works.md` in `callkaro-skills-official` first. Key differences from voice:
+
+- Confirm `channel` and `agentMode` (`ck chat-agents get`). Workflow agents are mocked by code-step key.
+- Skip voice items (opening line, end-call, transfer, speech language switch). Check every function description is a clear trigger, every `send_template` variable has `varDescriptions` or a pinned `varSources`, and the prompt says what to do when a function fails.
+- Test name `[P0] <capability> - <scenario>`. User speaks first (C1), so `user_prompt` gives the opening line.
+- Every custom function the scenario touches needs a mock entry; any mock switched off must be safe to run for real.
+- Ask the user about epochs before running; runs cost credits.
+
 One method and one score for every agent, so quality is comparable across bots, people and versions. This is QA planning and scoring; `callkaro-qa-grader` grades individual tester calls afterwards, and `callkaro-agent-review-debug` holds the review order and the root-cause method.
 
 ## Principles

@@ -1,0 +1,251 @@
+{
+  "_note": "Reference config: Spinny Auction Negotiation v3.2, 15-22 Oct 2026 IST. Stage rules and function names are the ones the RCA scripts used (mp2/_it/wk/build_xlsx.py, why_audit.py). Confirm each rule with the user before reuse. Lead IDs and phone numbers are never stored here.",
+  "name": "Spinny Auction Negotiation v3.2",
+  "agent_id": "69c4d31b2642a39e2169ebf9",
+  "period_label": "15-22 Oct 2026",
+  "window": {
+    "start_ist": "2026-10-15 00:00",
+    "end_ist": "2026-10-23 00:00",
+    "tz_offset_hours": 5.5,
+    "bins": "weekly"
+  },
+  "versions": null,
+  "_versions_note": "null = all versions returned by the agent in the window. For v3.2 only, list the version names or IDs (see callkaro-cli). Handoff quirk: switch_agent_language overwrites versionId to the final version, so version filtering uses the final version.",
+  "min_n": 5,
+  "city_field": "city",
+  "scenario_field": "metadata.car_metadata_atp_status",
+  "quadrant_field": "metadata.auction_quadrant",
+  "arm_field": null,
+  "crm_file": null,
+  "crm_join": {
+    "call_field": "lead",
+    "crm_key": "lead_id",
+    "status_field": "status",
+    "deal_value": "deal"
+  },
+  "dnd_rule": {
+    "field": "post_call.Mark_DND",
+    "op": "truthy"
+  },
+  "success": {
+    "field": "post_call.price_agreed",
+    "op": "truthy"
+  },
+  "_success_note": "post_call.price_agreed == true is the bot deal flag; Spinny Raw_Auctions sheet (crm_file) is ground truth for PA/token/stock-in. Never use conversion_status.",
+  "stages": [
+    {
+      "key": "called",
+      "label": "Unique leads called",
+      "rule": null
+    },
+    {
+      "key": "connected",
+      "label": "Connected (human)",
+      "rule": {
+        "is_human": true
+      }
+    },
+    {
+      "key": "live",
+      "label": "Live price (S1-S3)",
+      "rule": {
+        "all": [
+          {
+            "is_human": true
+          },
+          {
+            "field": "metadata.car_metadata_atp_status",
+            "op": "!=",
+            "value": "Expired"
+          },
+          {
+            "field": "metadata.active_price",
+            "op": "truthy"
+          }
+        ]
+      }
+    },
+    {
+      "key": "pitched",
+      "label": "Price pitched",
+      "rule": {
+        "all": [
+          {
+            "is_human": true
+          },
+          {
+            "any": [
+              {
+                "function_called": "mark_pitch_delivered"
+              },
+              {
+                "transcript_agent_regex": "(लाख|lakh|हज़ार|हजार|thousand).*(रुपय|rupee|offer|price|ऑफर)|(रुपय|rupee|offer|price|ऑफर).*(लाख|lakh|हज़ार|हजार|thousand)"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "negotiation",
+      "label": "Went to negotiation",
+      "rule": {
+        "all": [
+          {
+            "is_human": true
+          },
+          {
+            "any": [
+              {
+                "capability_visited": "negotiation"
+              },
+              {
+                "function_called": "mark_cohort_delivered"
+              },
+              {
+                "function_called": "calculate_next_negotiation_price"
+              },
+              {
+                "function_called": "check_expectation"
+              },
+              {
+                "function_called": "set_live_quadrant"
+              },
+              {
+                "function_called": "check_ocb_eligibility"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "key": "escalation",
+      "label": "Manager escalation",
+      "rule": {
+        "function_called": "calculate_next_negotiation_price"
+      }
+    },
+    {
+      "key": "deal",
+      "label": "Deal closed (price_agreed)",
+      "rule": {
+        "field": "post_call.price_agreed",
+        "op": "truthy"
+      },
+      "requires": "connected"
+    }
+  ],
+  "exclude_calls": [
+    {
+      "field": "version",
+      "op": "==",
+      "value": "__test__",
+      "note": "example: drop internal test versions"
+    }
+  ],
+  "checks": [
+    {
+      "label": "Deals on EXPIRED-price leads (S4/S5) — should be 0",
+      "rule": {
+        "all": [
+          {
+            "field": "post_call.price_agreed",
+            "op": "truthy"
+          },
+          {
+            "field": "metadata.car_metadata_atp_status",
+            "op": "==",
+            "value": "Expired"
+          }
+        ]
+      }
+    },
+    {
+      "label": "Language handoffs (switch_agent_language)",
+      "rule": {
+        "function_called": "switch_agent_language"
+      }
+    },
+    {
+      "label": "Calls marked DND (Mark_DND)",
+      "rule": {
+        "field": "post_call.Mark_DND",
+        "op": "truthy"
+      }
+    },
+    {
+      "label": "Calls with AI opt-out (ai_opt_out)",
+      "rule": {
+        "field": "post_call.ai_opt_out",
+        "op": "truthy"
+      }
+    },
+    {
+      "label": "Calls where car was already sold (car_sold)",
+      "rule": {
+        "field": "post_call.car_sold",
+        "op": "truthy"
+      }
+    }
+  ],
+  "drop_reasons": {
+    "stages_audited": [
+      "connected",
+      "live",
+      "pitched",
+      "negotiation",
+      "escalation"
+    ],
+    "reasons_per_stage": {
+      "connected": {
+        "hangup_in_greeting": "Customer hung up or went silent during the greeting / name check, before the price.",
+        "busy_callback": "Customer is busy, driving, or asks to be called later.",
+        "wrong_person": "Wrong number, not the owner, or the owner is not available.",
+        "refuses_ai": "Customer refuses to talk to an AI / bot or asks for a real person.",
+        "bot_stalled": "Conversation was going, but the bot never reached the price."
+      },
+      "pitched": {
+        "long_opening_hangup": "Customer hung up or went silent during or right after the long price turn, before answering.",
+        "customer_refused": "Customer clearly says no with no counter figure.",
+        "wants_time": "Customer wants time to think / talk to family / will call back.",
+        "bot_false_yes": "Bot treated something that was not a clear yes as agreement and moved to closing.",
+        "bot_skipped_negotiation": "Customer objected or gave a figure but the bot moved on without handling it."
+      },
+      "negotiation": {
+        "gap_too_big_firm": "Customer gave an expectation far above the offer and stayed firm.",
+        "hangup_during_rebuttal": "Customer hung up while the bot was giving reasons.",
+        "competitor_offer": "Customer cites a higher offer from a dealer or competitor.",
+        "bot_error": "Bot made a clear mistake (wrong price, wrong language, repeated lines, talked over the customer)."
+      },
+      "escalation": {
+        "gap_still_too_big": "Revised price still far below what the customer wants; customer firm.",
+        "ocb_declined": "Bot offered OCB / listing and customer declined.",
+        "bot_error": "Bot escalated on an expired price, wrong figure, or looped."
+      }
+    },
+    "sides": [
+      "bot",
+      "customer",
+      "platform"
+    ],
+    "llm": {
+      "model": "TODO confirm with user",
+      "gateway": "http://localhost:20128/v1",
+      "key_env": "GW_KEY"
+    },
+    "sample": "30 first, then all"
+  },
+  "targets": {
+    "connect": 0,
+    "pitch": 0,
+    "negotiation": 0,
+    "escalation": 0,
+    "deal_conn": 0
+  },
+  "defaults_used": [
+    "stage rules copied from RCA scripts",
+    "success rule capability_visited deal_closure (proposal, confirm)",
+    "min_n 5"
+  ]
+}

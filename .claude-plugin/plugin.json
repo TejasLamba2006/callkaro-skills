@@ -38,7 +38,8 @@
     "./skills/callkaro-mcp/",
     "./skills/callkaro-workflows/",
     "./skills/callkaro-kpi-manager/",
-    "./skills/callkaro-ai-auditor/"
+    "./skills/callkaro-ai-auditor/",
+    "./skills/callkaro-funnel-report/"
   ],
-  "version": "1.10.0"
+  "version": "1.11.0"
 }

@@ -12,6 +12,7 @@ I put these together after clicking through the dashboard and reading the docs e
 - `callkaro-workflows` for Workflows: step types, Conditions and value sources, the importable JSON file, enrolling from the CRM or `POST /workflow/assign`, reading run timelines
 - `callkaro-kpi-manager` for KPI Manager: data sources, metrics and targets, the RCA prompt, daily 5 AM IST pass, RCA reports and root causes, Pending Tasks board, manual RCA, troubleshooting
 - `callkaro-ai-auditor` for AI Auditor: audit strategy, filters, sampling, extra variables, Audit Reports (strategy and batch views), scores, issue severity, turning findings into fixes
+- `callkaro-funnel-report` for conversion funnel reports: ask-first discovery, cku pull, stage rules, LLM drop-reason audit, multi-sheet Excel workbook, A4 RCA PDF, independent verification
 - `callkaro-chat-agents` for WhatsApp and Instagram chat agents
 - `callkaro-calls-api` for outbound calls, campaigns, schedules, history
 - `callkaro-webhooks` for realtime events like call ended and message status
@@ -33,14 +34,14 @@ I put these together after clicking through the dashboard and reading the docs e
 
 ### Claude Code plugin (recommended)
 
-This repo is a Claude Code plugin marketplace. One plugin, twenty-two skills.
+This repo is a Claude Code plugin marketplace. One plugin, twenty-three skills.
 
 ```
 /plugin marketplace add TejasLamba2006/callkaro-skills
 /plugin install callkaro-skills@callkaro
 ```
 
-Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all twenty-two skills, so updates come through `/plugin update`.
+Restart Claude Code after install. Type `/` plus the skill name to confirm it shows up, e.g. `/callkaro-calls-api`. The plugin manifest lives in `.claude-plugin/` and lists all twenty-three skills, so updates come through `/plugin update`.
 
 ### npx skills CLI (any harness)
 

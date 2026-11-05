@@ -120,7 +120,7 @@ Data sources, metrics, RCA reports and cards:
 
 ```bash
 cku kpi rca-reports [--agent <id>] [--since 7d] [--until today] [--source <src>] [--page 1] [--limit 20]
-cku kpi rca-timeline <agentId> [--since <date>] [--until <date>]   # day-by-day RCA run events
+cku kpi rca-timeline <agentId> [--since <date>] [--until <date>]   # day-by-day RCA run events; event metadata carries prompt_cache_read_tokens, prompt_cache_write_tokens, prompt_cache_hit_rate (use them to confirm a prompt is being cached)
 cku kpi rca-pdf <agentId> <YYYY-MM-DD> [--manual] [--file out.pdf]
 cku kpi rca-draft <agentId> --prompt "focus on greeting and rebuttals" [--save]   # AI-draft the RCA prompt; --save writes it
 

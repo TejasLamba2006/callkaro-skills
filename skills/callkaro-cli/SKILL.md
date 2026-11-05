@@ -480,12 +480,17 @@ If the version has an in-call function that writes to a CRM or sends a message,
 it fires; the command prints `! <name> is not mocked` when that happens. Use a
 simulation with `--functions` mocks for those agents.
 
+## Prompt caching
+
+The dashboard's "% cacheable" badge on the system prompt is the share of words before the first `{{var}}` or `{var}`. Provider caches only reuse the prefix before the first changing token, so a low % means almost nothing is cached. "Make cacheable" is a client-side rewrite, not an API: it turns each variable into `<name>` in the body and appends a `# Call variables` block (`- <name> = {{name}}`) at the end. Apply it with a normal `agents update`. Caveats: single-brace text like `{city}` in an example gets converted too, so read the diff; a pre-call function that rewrites the prompt per call still breaks the prefix; run a simulation before moving traffic. Check the effect through `prompt_cache_read_tokens`, `prompt_cache_write_tokens` and `prompt_cache_hit_rate` in `cku kpi rca-timeline` event metadata.
+
 ## Analytics
 
 ```bash
 cku analytics overview
 cku analytics performance
-cku analytics version <agentId>
+cku analytics version <agentId> [--versions <final ids>] [--initial-versions <ids>] [--cohort leads] [--start <date>] [--end <date>]
+# --cohort leads = Lead View (each lead counted once, not each call); --initial-versions = calls that started on those versions
 
 # Diagnostics (dashboard credential)
 cku analytics failed-responses [--agent a1,a2] [--start 2026-10-01] [--end 2026-10-07] [--response <bucket>] [--limit 25]

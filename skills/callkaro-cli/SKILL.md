@@ -743,6 +743,7 @@ cku chat-audit models <agentId>                # WhatsApp agents: AI Auditor for
 cku chat-audit create <agentId> --strategy "..." --pct-per-day 20 --model <name>
 cku chat-audit update <agentId> <strategyId> --active|--disable
 cku chat-audit batch <agentId> <strategyId> --max 50   # audits now, uses credits
+cku chat-audit create <agentId> --strategy "..." --chatflow-summary "stages, required actions, outcome"   # auditor judges against this summary
 cku chat-sim create <chatAgentId> --name "..." --persona "..." --prompt "..." --criteria "..."
 cku chat-sim run <chatAgentId> --tests <ids> --versions <ids> [--epochs 2]
 cku chat-sim results <runId>
@@ -814,6 +815,7 @@ cku contacts attributes delete lead_stage --yes
 - `cku agents set-languages <agentId> --languages en,hi --versions v1,v2` sets switchable languages on several versions in one call. `cku agents postcall-info <agentId>` lists post-call variables and drop-off reasons.
 - `cku analyzers batches`, `batch-create --set @body.json`, `batch-calls <batchId> [--page n] [--export]`.
 - `cku chat-agents diff <chatAgentId> (--versions vA,vB | --commits cA,cB)`; `cku chat-audit reports [--agent <id>] [--page n]`.
+- `cku chat-agents delete-version <agentId> --versions <id>` (refused if published or assigned by another version); `cku chat-agents import --file <path>` creates an agent from export JSON (several `--file` versions become one agent, agent-level fields must match); `cku chat-agents import-versions <agentId> --file <path>` adds versions; `cku chat-agents commits <agentId> [--versions id]`, `cku chat-agents commit <commitId>`, `cku chat-agents revert <agentId> <commitId>` (sets a version back to a commit's saved state).
 
 **Platform groups** (dashboard credential; every command takes `--json`, destructive ones take `--yes`):
 - `cku inbox list|unread|handoffs [--channel c]|release <fromId> --channel c [--to-id id]|contact <phone> [--page n --limit n]|clear <phone> --yes|deassign <phone>`; `--number <agentPhone>` scopes to one sender. `release` is a DELETE with a body, so it needs `--channel`.

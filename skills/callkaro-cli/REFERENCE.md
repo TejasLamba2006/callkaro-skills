@@ -107,7 +107,7 @@ Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` 
 
 ## `cku chat-agents`
 
-Subcommands: `diff` `models` `templates` `template` `list` `get` `versions` `create` `update` `create-version` `publish`
+Subcommands: `diff` `models` `templates` `template` `list` `get` `versions` `create` `update` `create-version` `publish` `delete-version` `import-versions` `import` `commits` `commit` `revert`
 
 ## `cku skills`
 

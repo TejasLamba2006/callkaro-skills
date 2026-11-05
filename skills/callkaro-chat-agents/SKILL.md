@@ -45,6 +45,8 @@ LLM Model: pick model and temperature. Conversation and Features: greeting, fall
 
 Workflow (`agentMode: "workflow"`) has no prompt and no model. Code walks the graph on every inbound message: Python `code` steps (with `async def run():`, timeout 1-30 s, success/failure exits), condition routing, contact updates, sends, and `assign_agent` / `assign_version` hand-offs to a Basic or Advanced agent. Graph may not loop; run capped at 40 steps and 60 s. Use for keyword or button menus, order lookups, spam limits and routing.
 
+Versions and history (CLI): `cku chat-agents import --file <path>` (create from export JSON), `import-versions <agentId> --file <path>`, `delete-version <agentId> --versions <id>` (refused if published or assigned), `commits <agentId>`, `commit <commitId>`, `revert <agentId> <commitId>`. The AI auditor takes `cku chat-audit create|update --chatflow-summary "..."` to describe the intended conversation flow.
+
 Full step tables and create examples: `chat-agents-advanced.md` and `chat-agents-workflow.md` in `callkaro-skills-official`. Testing: `chat-simulations/chat-simulation-playbook.md`.
 
 ## Functions

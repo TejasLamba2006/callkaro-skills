@@ -26,7 +26,7 @@ Prompt types across sampled versions: type 0 (Basic/single) 40, type 1 (Advanced
 - Sarvam `saaras:v4` (hi-IN) for a couple of agents
 - `useMultiTranscribers` true on only 1 of 27 — single-transcriber setups dominate
 
-Structured context (`transcriber_general_context` key/values, `transcriber_text_context` prose) is the common pattern; keywords are used sparingly and only for proper nouns (brand, project, locality names).
+Structured context (`transcriber_general_context` key/values; `transcriber_text_context` prose was removed in 5.4.4) is the common pattern; keywords are used sparingly and only for proper nouns (brand, project, locality names).
 
 ## LLM
 

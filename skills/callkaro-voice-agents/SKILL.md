@@ -83,7 +83,7 @@ Tune speed, stability, similarity boost, style per provider. No emojis or specia
 
 Add brand names and short forms as Keywords so they transcribe right.
 
-**Structured context beats keyword blobs (observed across ~30 production agents).** Soniox accepts `transcriber_general_context` (key/value pairs) and `transcriber_text_context` (free prose), separate from `keywords`. Real usage in the account:
+**Structured context beats keyword blobs (observed across ~30 production agents).** Soniox accepts `transcriber_general_context` (key/value pairs) and `transcriber_translation_terms`, separate from `keywords` (`transcriber_text_context` was removed in 5.4.4). Real usage in the account:
 
 ```
 transcriber_general_context: [
@@ -91,8 +91,6 @@ transcriber_general_context: [
   {"key": "call_purpose", "value": "Verify customer identity before giving any factual payment reminder"},
   {"key": "expected_languages", "value": "Hindi, Hinglish"}
 ]
-transcriber_text_context: "Lokal Matrimony Hindi/Hinglish verification calls. Capture ages,
-  years, dates, and heights as digits. Do not drop year digits."
 ```
 
 Context says what kind of call this is and which forms matter; keywords are only for proper nouns and short forms ("Omaxe Estate", "Chandni Chowk", brand names, model names). Guidelines on keyword count vary by provider — keep the list short, put the rest in context.

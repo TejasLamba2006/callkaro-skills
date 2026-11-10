@@ -49,7 +49,7 @@ Pre-calls run once per capability at call start and again on the merged prompt (
 - Put an in-call function where the agent needs it; global only if it can be needed anywhere.
 - Never tell the LLM to call a function that is not available in the active capability.
 - The same function in several capabilities must be the identical object (name, description, parameters, code). Variants need different names.
-- `execute_while_switching` is for a capability-scoped pre-call function that must run on entering that capability.
+- `execute_while_switching` is for a pre-call function that must run every time its capability or node is entered. Set it on a capability-scoped function to fire on entering that node. Can also be set on a global function to make it re-run on every node transition — use only when the function is cheap and idempotent, since it fires on every switch in the call. In pathway (type-3) agents, global pre-call functions run once at call start; if a `{{placeholder}}` only appears in a specific node's prompt, set `execute_while_switching: True` on the function that fills it so the replacement happens on node entry, not only at call start.
 
 ## Pre-call patterns
 
@@ -76,7 +76,7 @@ Pre-calls run once per capability at call start and again on the merged prompt (
 - Revalidate inside the function before any side effect (price ceiling, identity, eligibility). The prompt alone is not a correctness boundary.
 - Make repeated calls safe: return an already-done or no-op result instead of repeating a booking, write or escalation.
 - Return compact data: status plus the next spoken value. Never return secrets, raw upstream payloads or internal limits the caller must not hear.
-- Spoken message while running: `msg_while_executing` (`static`, `dynamic`, `silent`) or the prompt, never both. `silent` for checks that must finish before the agent speaks.
+- Spoken message while running: `msg_while_executing` (`static`, `dynamic`, `silent`) or the prompt, never both. `silent` for checks that must finish before the agent speaks. In pathway (type-3) agents, set `msg_while_executing_type: "static"` with `msg_while_executing: []` on every function. `dynamic` fires an extra LLM call during the tool run, which is wasteful and unpredictable on node transitions.
 - Function-first for exact work (digit compare, length judging, math): the model gets these wrong, code gets them right (`callkaro-voice-agents`, live lessons).
 
 ## Post-call functions

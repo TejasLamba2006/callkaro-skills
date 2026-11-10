@@ -290,6 +290,29 @@ cku agents toggle-active <id> --versions <versionId>
 `clone-version --set` only accepts `transcriber`, `secondary_transcriber`,
 `voice_configuration`, `secondary_voice_configuration`, `silence_language`.
 
+**Building a pathway (type-3) version from a capabilities (type-2) source:**
+```bash
+# 1. Clone the source into a new type-3 shell
+cku agents clone-version <agentId> --versions <srcVersionId> \
+  --name "v_pathway" --prompt-type 3 --language hi
+
+# 2. The clone starts with transitions: [] on every node.
+#    Write transitions and other pathway fields via --set --commit (NOT via dashboard PUT —
+#    PUT does a shallow merge and silently drops transitions on capabilities):
+cku agents update <agentId> --versions <newVersionId> \
+  --set '{"capabilities": [...nodes with transitions...]}' \
+  --commit "add transitions"
+
+# 3. For systemprompt, snippets and other non-function fields, --set --commit works fine.
+#    For functions that fail the built-in validator (nested helper defs with bare returns):
+#    use the dashboard PUT route to update them, then do NOT follow with a --commit
+#    (a subsequent --set --commit reads the last committed state and reverts any un-committed PUT).
+CK_ACCOUNT=<account> cku dashboard api PUT \
+  "/v2/agents/<agentId>?version=<versionId>" @functions_payload.json
+```
+
+**Transitions persistence trap:** `cku dashboard api PUT /v2/agents/<a>?version=<v>` does a shallow merge on the `capabilities` array — `transitions` fields are silently dropped. Always write transitions through `cku agents update --set @capabilities_array --commit`.
+
 ### Commits, diff, revert, v2 save (dashboard credential)
 
 ```bash

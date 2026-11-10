@@ -62,6 +62,25 @@ Observed, not a rulebook; conventions are still forming.
 - `position` is the canvas location: preserve it on updates. Every node must be reachable from the start node, and every `next_capability` must match an existing node name exactly.
 - Seen in practice: the start node extracts `user_busy` and routes with strict expressions mixing metadata and that variable; intent branching uses natural-language transitions; each node prompt opens with a one-line job and, where needed, an entry gate checking it was reached for the right reason.
 
+**The `switch_capability` tool still exists in type 3.** The platform renders `transitions` as a `<capability_transitions>` block appended to the node prompt; the model still calls `switch_capability(name)` to move. This means: if the prompt also contains instructions like "call switch_capability('x')" the model calls the tool twice — once from the instruction and once from the transition condition. Strip every explicit "call switch_capability('x')" action instruction from all node prompts, base prompt sections, snippets and function return strings before deploying a pathway version. Keep only the transition conditions and business logic; the mechanics are the platform's job.
+
+**Prompt rewrite checklist for a type-2 → type-3 conversion:**
+- Remove the entire "SWITCHING — HOW TO MOVE BETWEEN CAPABILITIES" section from the base prompt; replace with a flow-neutral "CONVERSATION FLOW" section that describes stage behaviour without naming the tool.
+- Remove all "call switch_capability('x') FIRST" or "→ switch_capability('x')" action lines from every node `system_prompt`.
+- Remove "switch_capability is silent and immediate" from `function_calling_snippet`.
+- Remove "ENDING THE CALL — switch_capability('end_call') is a real function call" from `model_response_snippet`.
+- Remove from function return strings any instruction that tells the model to call switch_capability. Replace with a description of what happens next (e.g. "proceed to end_call").
+- Debug prefixes like `HARD RULE — observed live failure (call <id>):` belong in code comments, not model-facing text. Strip the prefix, keep the underlying rule.
+
+**`msg_while_executing_type` in pathway versions:** set to `static` with `msg_while_executing: []` on every function. `dynamic` triggers an extra LLM call while the function runs, which is wasteful on node transitions and can generate unpredictable filler. Silent execution is the safe default.
+
+**Transition condition design:**
+- Each condition describes the state of the conversation ("customer clearly agreed to the pitched price"), not an action ("call switch_capability('deal_closure')").
+- Conditions must be mutually exclusive and together cover every possible customer reply. An ambiguous reply should map to the most conservative exit (stay in place, or go back, never skip forward).
+- `condition_type: 0` (natural-language) is the default for intent-based routing. Use `condition_type: 1` (strict expression) only when the condition is a clean boolean derived from `extract_variables` or metadata.
+
+**Pre-call functions in pathway versions:** global pre-call functions run once at call start, replacing `{{placeholders}}` in all node prompts in a single merged pass. If a placeholder appears only in a specific node and the global pre-call might not reach it (e.g. due to pathway runtime scoping), add the function to that node's `functions` list with `execute_while_switching: True` so it fires on node entry. Alternatively, set `execute_while_switching: True` on the global function itself to make it re-run on every node transition — use this only when the function is cheap and idempotent.
+
 ## Base prompt vs capability or node
 
 - **Base (agent persona)**: everything true for the whole call: role, goal, objectives, call metadata, instructions (speaking style, language, conversation rules), general objections, guardrails. In types 2 and 3 the base contains no stage-specific flow.

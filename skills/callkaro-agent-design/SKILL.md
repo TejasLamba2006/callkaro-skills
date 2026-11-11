@@ -31,9 +31,9 @@ Never invent model, voice or transcriber configs, IDs, metadata keys, endpoints 
 | 0 | Basic (single prompt) | the whole `systemprompt` | the LLM follows the flow in the prompt | short, simple flows; lowest latency, most conversational |
 | 1 | Advanced | `role`, `goal`, `instructions`, `callFlow`, `guardrails`, `rebuttals` fields | same as Basic, sections editable separately | platform-supported, rarely used in current builds |
 | 2 | Multi-prompt | base prompt + active capability (+ any sticky one) | the LLM calls `switch_capability` | long or branched flows |
-| 3 | Pathway | agent persona (base) + active node | the platform switches nodes on transition conditions | complex flows needing deterministic switching |
+| 3 | Pathway | agent persona (base) + active node + that node's transition conditions | the LLM still calls `switch_capability`; natural-language conditions are prompt text, and only strict expressions run in code | complex flows where the switch points can be written down per node |
 
-Why each exists: Basic sends the full prompt every turn, so long flows cost more, hit context limits and hallucinate more. Multi-prompt sends only base + current stage. Pathway fixes multi-prompt's weak point (the LLM misjudging when to switch, or knowing but failing the tool call): the LLM only extracts variables and the switch is programmatic.
+Why each exists: Basic sends the full prompt every turn, so long flows cost more, hit context limits and hallucinate more. Multi-prompt sends only base + current stage. Pathway does **not** make switching programmatic by itself (backend source, read Nov 2026): it renders each node's transitions into the prompt and the model decides, exactly as in type 2. The only deterministic path is a strict expression (`condition_type: 1`), which the platform evaluates in code, and only after the node's required `extract_variables` have been recorded. Design a pathway as "multi-prompt with the switching rules written per node", and use strict expressions wherever a switch must not depend on the model's judgment.
 
 Choosing:
 
@@ -48,7 +48,8 @@ Choosing:
 - `overwrite: true` drops the base prompt while that capability is active. Rarely wanted.
 - `stick_capability: true` keeps that capability's prompt in context after switching away; every other capability is swapped out. Typical: a sticky start capability stays while negotiation is swapped for deal closure.
 - `functions` and `postcall` on a capability are scoped to it.
-- `llms` sets `primary_model`, `secondary_model` (fallback) and `temperature` (0 to 1) per capability, so a small start capability can run a small model and a long negotiation capability a larger one.
+- `llms` sets `primary_model`, `secondary_model` (fallback) and `temperature` (0 to 1) per capability, so a small start capability can run a small model and a long negotiation capability a larger one. Cost: a capability with its own `llms` makes the platform rebuild the LLM on every switch into it, which adds latency at the switch. `temperature: 0` is ignored (the code tests it for truthiness); use a small non-zero value.
+- Also settable per capability or node: `endpointing`, VAD overrides (applied only when `use_capability_vad` is on) and `use_filler`.
 - `msg_while_switching_type` is `static`, `dynamic` or `silent`, with `msg_while_switching` holding the line or generation prompt.
 - Switching is an LLM tool call: the prompt must say exactly when to switch and to which capability. Never route to the capability you are already in.
 
@@ -57,7 +58,8 @@ Choosing:
 Observed, not a rulebook; conventions are still forming.
 
 - Base `systemprompt` is the persona; `capabilities` are nodes. `node_type` is `normal` (moves only through its transitions) or `global` (reachable anywhere via `when_to_jump`).
-- `transitions`: `{condition_type, condition, next_capability}`. `condition_type: 1` is a strict bracketed expression, e.g. `((metadata.lead_intention == 30) AND (user_busy == false))`. `condition_type: 0` is a natural-language condition the LLM evaluates ("user wants only a time change, same address").
+- `transitions`: `{condition_type, condition, next_capability}`. `condition_type: 1` is a strict bracketed expression, e.g. `((metadata.lead_intention == 30) AND (user_busy == False))`. `condition_type: 0` is a natural-language condition ("user wants only a time change, same address"): it is text in the main model's prompt, and there is no separate evaluator.
+- **Booleans in strict expressions need a capital letter: `== True`, `== False`.** The value is compared as Python's `str(True)`, so `== true` never matches and the edge silently never fires.
 - `extract_variables` (`string`, `number`, `boolean`; `name`, `description`, `is_required`) are values the LLM extracts while in that node; transition conditions can use them.
 - `position` is the canvas location: preserve it on updates. Every node must be reachable from the start node, and every `next_capability` must match an existing node name exactly.
 - Seen in practice: the start node extracts `user_busy` and routes with strict expressions mixing metadata and that variable; intent branching uses natural-language transitions; each node prompt opens with a one-line job and, where needed, an entry gate checking it was reached for the right reason.
@@ -72,14 +74,28 @@ Observed, not a rulebook; conventions are still forming.
 - Remove from function return strings any instruction that tells the model to call switch_capability. Replace with a description of what happens next (e.g. "proceed to end_call").
 - Debug prefixes like `HARD RULE — observed live failure (call <id>):` belong in code comments, not model-facing text. Strip the prefix, keep the underlying rule.
 
-**`msg_while_executing_type` in pathway versions:** set to `static` with `msg_while_executing: []` on every function. `dynamic` triggers an extra LLM call while the function runs, which is wasteful on node transitions and can generate unpredictable filler. Silent execution is the safe default.
+**`msg_while_executing_type` on in-call tools: use `silent`.** Only `static` does anything, and `static` with an empty list plays an empty line that cannot be interrupted. `dynamic` and `silent` both do nothing and make no extra LLM call. (This replaces the 10 Nov advice in this skill to set `static` with `msg_while_executing: []`; that advice was wrong.)
+
+**What the model actually sees, and what follows from it** (backend source, `utils/prompt_snippets.py`, read Nov 2026):
+
+- The node's transitions are appended as a `<capability_transitions>` block that opens: "Only after you have collected all required information, switch capability when any of the following conditions is met. Check them in order and use the first that applies:", then one line per edge: "When <condition>, switch to 'x' by calling switch_capability('x')".
+- A fixed tool text, which you cannot override, adds: "Do not switch capability unnecessarily if the current one can handle the request."
+- An "Available capabilities" list names **every node except the current one**, so the model can jump to any node, not only this node's transition targets.
+- Together these bias the model to stay where it is, and leave it free to jump somewhere you never drew an edge to. Write conditions that push back: state the trigger as something observable, and end the ones that must fire at once with "Transition immediately without speaking first." (or "Transition in this same turn." for an edge that follows a spoken line). In each node prompt, name the nodes it must never jump to if a wrong jump would be costly.
+- `switch_capability` is refused while an in-call tool is running ("Already executing a function tool") and while a required `extract_variable` is still missing. A switch that "did not happen" is often one of these two.
+- `{{key}}` in a prompt or a condition is filled from metadata saved at call start and **never refreshed**. A key that an in-call function creates during the call stays as raw `{{key}}` text, and an existing key keeps its call-start value. A condition cannot read live state through `{{...}}`; use an `extract_variable` the model records, or have the in-call function's return value tell the model what to do.
 
 **Transition condition design:**
 - Each condition describes the state of the conversation ("customer clearly agreed to the pitched price"), not an action ("call switch_capability('deal_closure')").
+- Write it in plain, observable terms. The model reads the condition alongside the node prompt, but prompt-internal labels ("S4", "Q3", "the escalation gate") make it guess.
 - Conditions must be mutually exclusive and together cover every possible customer reply. An ambiguous reply should map to the most conservative exit (stay in place, or go back, never skip forward).
-- `condition_type: 0` (natural-language) is the default for intent-based routing. Use `condition_type: 1` (strict expression) only when the condition is a clean boolean derived from `extract_variables` or metadata.
+- `condition_type: 0` (natural-language) is the default for intent-based routing. Use `condition_type: 1` (strict expression) when the condition is a clean boolean derived from `extract_variables` or call-start metadata: it is the only kind the platform evaluates in code, and it runs only inside the model's `record_information` call, after the node's required variables are recorded.
 
-**Pre-call functions in pathway versions:** global pre-call functions run once at call start, replacing `{{placeholders}}` in all node prompts in a single merged pass. If a placeholder appears only in a specific node and the global pre-call might not reach it (e.g. due to pathway runtime scoping), add the function to that node's `functions` list with `execute_while_switching: True` so it fires on node entry. Alternatively, set `execute_while_switching: True` on the global function itself to make it re-run on every node transition — use this only when the function is cheap and idempotent.
+**Pre-call functions in pathway versions.** At call start the order is: P0, then each node's prompt is processed by the pre-call functions that do **not** have `execute_while_switching`, then every pre-call runs once on the merged prompt, then `{{key}}` placeholders are filled from metadata. On each switch, only the functions with `execute_while_switching: True` run again, on the merged prompt, with the **live** metadata; P0 never reruns and errors there are swallowed. So:
+
+- A placeholder that only one node uses, and that depends on state built during the call, needs its function flagged `execute_while_switching: True` (on that node's function, or on the global one).
+- **A flagged function reruns its writes too.** If it sets a metadata key that an in-call function later updates (an opening price that a pricing tool raises), every switch after that resets the key to the opening value. Either do not flag it, or make it skip keys that already hold a live value.
+- Full order and the swallowed-error rule: `callkaro-functions`, Execution order.
 
 ## Base prompt vs capability or node
 

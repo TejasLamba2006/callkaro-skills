@@ -58,7 +58,9 @@ Everything else becomes a goal plus one short example line the model may say in 
   per turn as a ceiling; none on serious moments (price, deductions, bad news, closing), where a
   filler sounds worse than silence
   ([Auto Interview AI](https://www.autointerviewai.com/blog/prompt-engineering-voice-ai-interruptions-latency-2026)).
-  On TTS, too many fillers sound glitchy: start low.
+  On TTS, too many fillers sound glitchy: start low. For the "one moment" kind of filler that covers
+  processing time, use the platform's Filler Configuration (Static phrase list or Dynamic) instead of
+  the prompt: `callkaro-voice-agents`, Call Memory, voice rotation, fillers section.
 - Vary the short reaction ("samajh raha hoon", "bilkul", "sahi baat hai") and never use the
   same one twice in a call. Empathy openers are only for pushback. Do not open a turn with an empty
   affirmation ("great", "okay", "perfect", "achha", "theek hai" with nothing after it); a reaction

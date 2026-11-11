@@ -41,13 +41,17 @@ Useful fields:
 }
 ```
 
-`metadata` values render in prompts as `{{metadata.name}}`. `gap_between_retries` accepts a number or array like `[30, 60]`. `carry_over` pushes missed calls to next day at min time.
+`metadata` values render in prompts as `{{metadata.name}}`. `gap_between_retries` is in minutes and accepts a number or array like `[30, 60]`. `carry_over` pushes missed calls to next day at min time.
+
+Limits from the API spec: `priority` -100 to 100 (default 0), `number_of_retries` 0 to 10, `language` one of `hi en kn mr ta te bn gu ml`, trigger times as `HH:MM`. The intro page shows the success id as `call_id` and the endpoint spec as `call_sid`; read both until you have seen a live response.
 
 ## Campaigns
 
-v1 `POST /call/campaign` needs `name` plus `agent_id`. Every call in it must use that agent. Good for single agent blasts.
+v1 `POST /call/campaign` needs `name`; `agent_id` is optional. With it, calls added with only the `batch_id` use the campaign's agent, and a call can still pass its own `agent_id`. Without it, every call must bring one, or it is rejected with `no agent found with given batch_id`.
 
-v2 `POST /v2/call/campaign` needs only `name`. Each outbound call passes its own `agent_id`. Use v2 for new work unless you need the same agent lock.
+v2 `POST /v2/call/campaign` needs only `name`. Each outbound call passes its own `agent_id`.
+
+Errors worth recognising: 400 "You don't have enough credits. Recharge now!", 400 "Buy Phone Number", 403 "API KEY Mismatch", 404 "Agent not found!".
 
 Both return `batch_id`. Add calls with outbound API plus that `batch_id`. Track at `/dashboard/batch-calls/{batch_id}`.
 
@@ -57,11 +61,21 @@ Both return `batch_id`. Add calls with outbound API plus that `batch_id`. Track 
 
 ## Call history and filters
 
-Dashboard Call History filters: call type (Inbound, Outbound, Outbound API, Outbound Scheduled, Outbound Test, Agent Test), batch scope, agent multi select, disconnect reason, duration buckets (0, 1-10s, 11-30s, 31-60s, 60s plus), date range, phone search. Columns include Type, From, To, Agent, Version, Time, Disposition, Last Stage (Converted, Connected, Not Connected, Voicemail), Duration, Model, Voice, Transcriber, Latency, Cost, Hangup Reason.
+Dashboard Call History filters: call type (Inbound, Outbound, Outbound API, Outbound Scheduled, Outbound Test, Agent Test), batch scope, agent multi select, disconnect reason, duration buckets (0, 1-10s, 11-30s, 31-60s, 60s plus), date range, phone search, conversion status, provider, plus account-specific text filters (seen: metadata keys such as a lead id) and a More Filters section. Columns in order: Type, From, To, Agent, Version, Time, Disposition, Last Stage (Converted, connected, Not Connected, voicemail; Converted means connected and conversion status true), Duration, Model, Voice, Provider, Transcriber, Latency, Billing Duration, Cost, Hangup Reason. Page: `/dashboard/call-history`.
 
 ## Assign to workflow
 
-`POST /workflow/assign` with `to_number`, `workflow_id`, optional `attributes` and IST `schedule_at`. Full contract in the `callkaro-workflows` skill.
+`POST /workflow/assign` with `to_number`, `workflow_id`, optional `attributes`, IST `schedule_at` and `batch_id` (an existing campaign on the same account; tags the run and its calls). It creates the contact if needed and saves the attributes, so it replaces a create-then-assign pair. 409 "This number is already running in this workflow"; 404 "Workflow not found" or "Batch not found". Do not retry a 400, 404 or 409. Full contract in the `callkaro-workflows` skill.
+
+## Contacts
+
+| Call | Notes |
+|---|---|
+| `POST /contact/create` | Body `to_number` plus `attributes: [{key, value, replace}]` (max 50 rows, values up to 1000 characters). 201 on success. 409 "Contact already exists. Use /contact/update to change it." |
+| `GET /contact/get` | `?page=1&page_size=20` (page size 1 to 100) or `?to_number=919876543210` (no `+` in the URL). Returns a `pagination` object. |
+| `POST /contact/update` | Same body. Values are overwritten unless a row sends `replace: false`. 404 "Contact not found". |
+
+`+919876543210`, `919876543210` and `9876543210` are the same contact. Contact pages answer a missing or unknown key with 401, the outbound page says 403: handle both.
 
 ## Batch calls via dashboard
 

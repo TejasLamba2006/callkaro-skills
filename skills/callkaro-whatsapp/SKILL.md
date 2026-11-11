@@ -19,7 +19,9 @@ To send at scale: add card plus GST in Meta Business settings and finish busines
 
 ## Templates
 
-Send only approved templates outside the 24h window. Language resolves to the approved one if you omit `language_code`.
+Send only approved templates outside the 24h window, and **the first message to a user must always be a template**; free-form text is allowed only within 24 hours of the customer's last message. Language resolves to the approved one if you omit `language_code`, otherwise `"en"`.
+
+Template statuses: APPROVED, PENDING, REJECTED, PAUSED (and IN_APPEAL). A template can be edited only when APPROVED, REJECTED or PAUSED, once per day and at most 10 times a month. A deleted template cannot be recovered. Templates made in Meta Business Manager sync to CallKaro.
 
 Send API `POST https://api.callkaro.ai/whatsapp/send-template`:
 
@@ -33,7 +35,9 @@ curl -X POST "https://api.callkaro.ai/whatsapp/send-template" \
     "metadata": {"plan_type": "Gold", "City": "Delhi"}}'
 ```
 
-Response includes `message_id`, `contact_updated`, `metadata_ignored`. Creates the contact as outbound if new, never reclassifies existing ones.
+Response includes `message_id`, `contact_updated`, `metadata_ignored`. Creates the contact as outbound if new, never reclassifies existing ones. **A 200 does not mean the user received it**, only that the send was accepted; a rejected send is stored with Meta's reason and is not retried for you.
+
+Optional body fields: `wa_campaign_id` (1 to 64 letters, digits, `_` or `-`; attributes the send to a campaign and follow-ups inherit it), `agent_id` (tag only), `extra` (stored on the message row, not written to the contact). Errors: 400 `whatsapp_error` with Meta's reason (footer max 60, body max 1024 characters), 400 "WhatsApp Business Account not linked", 403 "phone_number_id does not belong to this account".
 
 `components` fills this message only. `metadata` saves onto the contact and persists. Send a value in both if you want both jobs done.
 
@@ -48,13 +52,15 @@ phone,body_0,body_1
 +919876543210,John,ORD123
 ```
 
-Test with your own number first. Follow-up block can nudge non repliers.
+Test with your own number first. The template must be APPROVED and the sending number `CLOUD_API`. The follow-up block can nudge non repliers: minimum delay 60 minutes (shorter risks Meta flagging the sender as spam), and it is a Follow-up Template **or** a Follow-up Call, not both.
+
+Analytics: "Sent" means the message reached Meta and includes delivered and read. Read counts run low because recipients with read receipts off are not counted.
 
 CLI (`cku wa-campaigns`, dashboard login): `list`, `analytics <id>`, `timeseries <id> [--start --end]`, `export <id> [--fields a,b --include-chat --file out.csv]`, `send --set @body.json`. See `callkaro-cli`.
 
 ## History API
 
-`GET https://api.callkaro.ai/whatsapp/messages?user_phone_number=919876543210&limit=50` with `X-API-KEY`. Add `agent_phone_number` to scope to one sender. Returns oldest first, exactly what the agent sees.
+`GET https://api.callkaro.ai/whatsapp/messages?user_phone_number=919876543210&limit=50` with `X-API-KEY`. Add `agent_phone_number` to scope to one sender. Returns oldest first, exactly what the agent sees. `limit` defaults to 50 and is capped at 200; a larger value is silently reduced, not rejected. Another account's number returns an empty list, not an error.
 
 Each message: `name` inbound or outbound, `time` IST, `status`, `type`, `body` (templates and media flattened to readable text), `msg_id` (wamid), `content_link` for media, `tool_calls` for agent function use. Excludes failed sends, internal developer rows, and anything before a chat reset.
 

@@ -18,7 +18,23 @@ Contracts, scope, order and patterns for custom function code. Skeleton code is 
 | `custom_post_call` | JavaScript | after post-call analysis | platform | `async function name(context)`. Appends exactly one entry to `context.functions_called`. |
 | Predefined | none | as configured | LLM or platform | `transfer`, `keep_call_on_hold`, `available` / `booking` (Cal.com only), `send_to_whatsapp`, `assign_chat_agent`. Team rule: do not use the `end` function; end calls through `end_call_msg` lines. |
 
-Injected helpers need no import. Python: `httpx`, `logger`, `x_secrets`, `JobContext` / `RunContext`, `send_email`. JavaScript: `axios`, `moment`, `lodash` as `_`, `console`, `sendEmail`, `x_secrets`. Always set HTTP timeouts. Never use `eval`, `exec`, dynamic imports, filesystem or process APIs. Only the first `def` in a Python body runs, so nest helpers and import inside the body.
+Injected helpers need no import. Python: `httpx`, `logger`, `x_secrets`, `JobContext` / `RunContext`, `send_email`. JavaScript: `axios`, `moment`, `lodash` as `_`, `console`, `sendEmail`, `x_secrets`. Always set HTTP timeouts. Never use `eval`, `exec`, dynamic imports, filesystem or process APIs. Nest helpers and imports inside the function body. The code is `exec`'d with a shared, cached globals namespace and a separate locals namespace, and the tool is then looked up by name: every other top-level `def` and `import` lands in those locals and is out of scope inside the tool, so calling it raises `NameError` at call time, not at save time. Never assign module-level globals either; that namespace is shared across calls in the process. Log with `logger.warning`; the platform docs say never to use `logger.error`.
+
+The dashboard also offers **Basic mode** for in-call and post-call functions: a single API hit configured in a form, no code. Use it for a plain HTTP call with no transform; everything in this skill is about Advanced (code) functions.
+
+### `x_call_history` (Call Memory)
+
+Read-only list of earlier calls with the same contact, newest first, available in pre-call, in-call and post-call functions when Call Memory is on for the version (`callkaro-voice-agents`, Call Memory). It is an empty list when Call Memory is off or this is the contact's first call. Chat agents have a different variable, `x_history`.
+
+- **Memory is loaded only when the function's code contains the text `x_call_history`.** A helper that receives the list as an argument from another function gets nothing unless the name appears in its own code.
+- Entry fields: `call_sid`, `name`, `direction`, `from`, `to`, `time`, `created_at`, `call_duration`, `connected`, `hangup_reason`, `conversion_status`, `disposition_reason`, `post_call`, `call_metadata`, `functions_called`, `language`, `agent_id`, `version_id`, `batch_id`, `workflow_id`, and `transcript` only if "Include call transcripts" is on.
+- **Never send the whole `x_call_history` list, or `x_secrets`, to an outside service. The platform rejects function code that does.** Send only the fields you need.
+- Typical uses: write a one-line summary of the last call into the prompt from a pre-call function, stop retrying after N unanswered attempts, skip work when the last call already converted.
+
+```python
+last = x_call_history[0] if x_call_history else None
+note = "The customer asked for a callback on the last call." if last and last["disposition_reason"] == "callback_requested" else "This is a fresh conversation."
+```
 
 **Email helpers (`send_email` in Python pre/in-call, `sendEmail` in JS post-call):** neither raises on delivery failure — always `await` and check `result["status"] == "success"` (Python) or `result.status === "success"` (JS), keeping SMTP credentials in `x_secrets["SMTP_USERNAME"]` / `x_secrets["SMTP_APP_PASSWORD"]` and logging the outcome in `context.functions_called` without credentials.
 
@@ -35,7 +51,16 @@ Injected helpers need no import. Python: `httpx`, `logger`, `x_secrets`, `JobCon
 5. Post-call functions run, possibly concurrently: array order is not execution order, so each must be correct alone.
 6. Webhook.
 
-Pre-calls run once per capability at call start and again on the merged prompt (one call executed a single pre-call 7 times), so keep them idempotent and cheap; on the merged run `system_prompt` is not a plain `str` (see the runtime reference).
+Pre-call order inside step 1 and 2, from the backend source (read Nov 2026):
+
+1. **P0** functions run once.
+2. **Per-node loop.** Each capability or node prompt is processed by the non-P0 pre-call functions, **skipping any function that has `execute_while_switching`**. The start capability is processed twice.
+3. **Merged run.** Every pre-call function runs once more on the merged prompt. Here `system_prompt` is not a plain `str` (see the runtime reference).
+4. **Metadata fill.** `{{key}}` placeholders are replaced from the metadata as it stands now. That snapshot is reused for the whole call and never refreshed.
+
+**On every switch** only the functions with `execute_while_switching: True` run again, on the merged prompt, with the **live** metadata. P0 never reruns. An exception there is swallowed: the switch still happens and the placeholder stays as it was, so a failure is silent. Log inside the function if you need to see it.
+
+That is why one pre-call can execute many times in a call (once per node, plus the merged run, plus once per switch if flagged). Keep them idempotent and cheap.
 
 ## Global vs capability or node scope
 
@@ -50,6 +75,8 @@ Pre-calls run once per capability at call start and again on the merged prompt (
 - Never tell the LLM to call a function that is not available in the active capability.
 - The same function in several capabilities must be the identical object (name, description, parameters, code). Variants need different names.
 - `execute_while_switching` is for a pre-call function that must run every time its capability or node is entered. Set it on a capability-scoped function to fire on entering that node. Can also be set on a global function to make it re-run on every node transition — use only when the function is cheap and idempotent, since it fires on every switch in the call. In pathway (type-3) agents, global pre-call functions run once at call start; if a `{{placeholder}}` only appears in a specific node's prompt, set `execute_while_switching: True` on the function that fills it so the replacement happens on node entry, not only at call start.
+- **A flagged function repeats its writes on every switch.** If it sets a metadata key that an in-call function updates later (a starting price that a pricing tool then raises), each switch puts the starting value back. Guard the write ("only if the live key is empty") or do not flag that function.
+- `{{key}}` text is filled once, from metadata at call start. A key first created during the call stays as literal `{{key}}` in the prompt; an existing key keeps its call-start value. To get live state in front of the model, return it from an in-call function or rewrite the prompt in a flagged pre-call.
 
 ## Pre-call patterns
 
@@ -76,8 +103,30 @@ Pre-calls run once per capability at call start and again on the merged prompt (
 - Revalidate inside the function before any side effect (price ceiling, identity, eligibility). The prompt alone is not a correctness boundary.
 - Make repeated calls safe: return an already-done or no-op result instead of repeating a booking, write or escalation.
 - Return compact data: status plus the next spoken value. Never return secrets, raw upstream payloads or internal limits the caller must not hear.
-- Spoken message while running: `msg_while_executing` (`static`, `dynamic`, `silent`) or the prompt, never both. `silent` for checks that must finish before the agent speaks. In pathway (type-3) agents, set `msg_while_executing_type: "static"` with `msg_while_executing: []` on every function. `dynamic` fires an extra LLM call during the tool run, which is wasteful and unpredictable on node transitions.
+- Spoken message while running: `msg_while_executing_type` or the prompt, never both. For code (Advanced) in-call tools only `static` does anything: it speaks a random line from `msg_while_executing`. **`static` with an empty list plays an empty line that cannot be interrupted, so never use it as "silent".** `dynamic` and `silent` do nothing and make no extra LLM call. Default to `silent`; use `static` with real lines only when the caller should hear something. (Earlier versions of this skill recommended `static` with `[]` and said `dynamic` costs an LLM call. Both were wrong.)
 - Function-first for exact work (digit compare, length judging, math): the model gets these wrong, code gets them right (`callkaro-voice-agents`, live lessons).
+
+### What the platform does around an in-call tool
+
+From the backend source (read Nov 2026). Each of these has caused a live bug.
+
+- **The docstring is model text.** The tool description sent to the LLM is `description` plus the function's docstring, on every turn. Keep the docstring to purpose, when to call and what comes back. No change history, no fix notes, no long examples: one production tool carried about 5,700 characters of it into every turn. A docstring is still required (the save-time judge checks for one).
+- **The platform logs every in-call result into `functions_called` itself.** Calling `add_functions_called` from your code writes a second entry for the same call, which reads in call history as the function having run twice. Do not log manually. When the model batches several tool calls in one turn, only the first is auto-logged. A `None` return is logged as `{"status": "no_output"}`.
+- **Returning `None` means the bot says nothing after the tool.** Use it on purpose (a silent bookkeeping call), never by falling off the end of a branch. Every other path returns a dict with `status`.
+- **`executing_fn_tool` blocks switching.** While that flag is true, `switch_capability` is refused with "Already executing a function tool" and the silence monitor is paused. Any function that sets it must clear it in a `finally`, including on the early-return and exception paths. One init-failure branch that returned without clearing it blocked every switch for the rest of the call.
+- `keep_call_on_hold` only sets a hold duration (default 20 s).
+
+### The save-time judge
+
+Every save of a changed function, from `cku agents update` or the dashboard, runs three checks in order, and a rejected save writes nothing:
+
+1. A fixed code policy: blocked imports and builtins, an allow-list of `ctx` attributes, audio only from `assets/*.wav`.
+2. An LLM judge that answers yes/no questions about the code and rejects at a probability of 0.5 or more. Because it is a model, **the same code can pass on one try and fail on the next**.
+3. A build check.
+
+What the judge looks at: a `status` key on **every** return of an in-call function (including early returns and `except` branches); every path of a prompt-rewriting pre-call returning the prompt string; a docstring; secrets read through `x_secrets` and no hardcoded credentials; and anything that looks like harm or data leaving (files, processes, environment, dynamic code, sending call data or secrets out).
+
+Reading a "This code can't be saved" error: the message names the rule. Fix the code for that rule; do not resubmit unchanged and hope. Typical ones: "A return value isn't a dict with a `status`" (find the return without it, often `return None` or a bare dict in a helper branch), and a false "works with files or folders" on legitimate asset audio, which a one-line docstring note explaining the call clears. Functions saved before the judge existed keep working until their next edit, then fail on rules they never met: budget for that when touching an old function.
 
 ## Post-call functions
 

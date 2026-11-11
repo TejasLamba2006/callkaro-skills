@@ -17,7 +17,7 @@ I put these together after clicking through the dashboard and reading the docs e
 - `callkaro-calls-api` for outbound calls, campaigns, schedules, history
 - `callkaro-webhooks` for realtime events like call ended and message status
 - `callkaro-whatsapp` for number connect, templates, campaigns, inbox
-- `callkaro-widget-integrations` for website widget and CRM links like HubSpot
+- `callkaro-widget-integrations` for the voice and chat website widgets and CRM links like HubSpot
 - `callkaro-qa-ops` for audits, feedback, analytics, pricing, daily ops
 - `callkaro-qa-grader` for grading QA test calls by fault layer and disposition
 - `callkaro-prompt-style` for the plain-text house style: de-markdown, banners, SSML pauses, custom begin message, placeholder-safe rewrites
@@ -67,6 +67,15 @@ npx skills use TejasLamba2006/callkaro-skills@callkaro-calls-api          # try 
 npx skills update                                                         # pull latest
 ```
 
+### With the `cku` CLI
+
+If you already have `cku` (`npm install --global callkaro-cli-unofficial`), it installs and refreshes this pack itself, and from 0.9.4 it tells you when the pack has changed since you installed it:
+
+```bash
+cku skills install --claude      # or --cursor, --codex, --all; add --project for this repo only
+cku skills update                # refresh every place it is installed
+```
+
 ### Manual copy (any agent)
 
 If your harness does not support plugins, copy the folders directly:
@@ -98,7 +107,7 @@ Pick the skill that matches your task. Each SKILL.md has the endpoints, payloads
 
 ## Sources
 
-All content comes from https://docs.callkaro.ai (132 pages, checked Sept 2026) plus a live pass over the dashboard. If docs and dashboard disagree, trust the dashboard and file it as a bug.
+All content comes from https://docs.callkaro.ai (180 pages, last checked 11 Nov 2026; every page is also served as markdown at `<url>.md`, with an index at `/llms.txt`) plus a live pass over the dashboard. If docs and dashboard disagree, trust the dashboard and file it as a bug.
 
 ### Credits for `callkaro-conversational-voice`
 

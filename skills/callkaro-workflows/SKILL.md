@@ -14,8 +14,11 @@ A workflow is a graph drawn once. Every enrolled contact gets their own run that
 | Type key | Step | Notes |
 |---|---|---|
 | `start` / `end` | Start, End | Exactly one Start. End has no exits. One End per path is normal. |
+| `inbound` | Inbound Call | Second entry point, at most one, no fields, nothing may lead into it. When a contact calls in on a number this workflow called them from, their live run jumps here from wherever it was. Steps after it read the inbound call. A finished run is not affected, and only the workflow of the contact's most recent call hears about it. |
+| `cancel` | Cancel Workflow | No fields. Ends the run as Cancelled and drops any call an earlier Send Call had scheduled. Counts as an end for the "Start must reach an end" rule. |
+| `resume` | Resume Where They Were | No fields, needs an `inbound` node. Ends an inbound branch by putting the contact back on the step the call interrupted (a Wait keeps the time it had left). An inbound branch that leads nowhere does the same. |
 | `send-call` | Send Call | Needs `agentId`. Waits for the call and all retries (run shows Awaiting call). If the call cannot be placed (no credit, DND, bad number) the run moves on at once, so follow it with a Conditions step on `connected_call`. |
-| `wait` | Wait | `minutes`, whole, at least 1. 1440 is a day. No "wait until 10 am". |
+| `wait` | Wait | `minutes`, whole, at least 1 (the canvas pre-fills 15). 1440 is a day. A Wait cannot wait until a time of day; Send Call's Schedule at, Daily time, can. |
 | `conditions` | Conditions | Ordered exits, first match wins, exit with no `condition` is Otherwise, put it last. No Otherwise means an unmatched run stops there. |
 | `wa-template` | Send WhatsApp Template | Provider whatsapp, heltar or aisensy. Sending number required. Use this for anyone who has not written in. |
 | `wa-message` | Send WhatsApp Message | Free text. Only inside the 24h window after the contact's last message, WhatsApp and Heltar providers only. |
@@ -27,11 +30,22 @@ A workflow is a graph drawn once. Every enrolled contact gets their own run that
 
 `agentId` (required), `retries` 0 to 10, `retryGaps` (minutes per retry, `[30,120]`), `retryGapMinutes` (default 30), `scheduleAt` (IST `YYYY-MM-DDTHH:mm:ss`), `metadata` rows `{key, source, value}` that the agent reads as `{{metadata.<key>}}`.
 
+Settings the Send Call panel has that the official import spec does not name (set them in the dashboard after import, or export a workflow that uses them to read the real field names; do not invent keys):
+
+- **Language**: the language the agent speaks on this call. English by default; clear it to use the agent's own default.
+- **Schedule at, Daily time**: call at a time of day. Before it, the call goes at that time today; up to 5 minutes after, straight away; later than that, at that time tomorrow. (Date & time is the one-moment form, `scheduleAt`.)
+- **Carry Over**: on by default, a call that lands outside the calling window waits for it to open. **Off drops the call**: the run moves on to the next step and the reason shows in the timeline.
+- **Trigger Window**: minimum and maximum trigger time for this step's calls, retries included. Empty means the workflow's own calling window.
+
+All times are IST.
+
 ## Value sources
 
 Used by conditions, placeholders, headers, Update Contact rows and call metadata: `static_value`, `phone_number`, `contact` (CRM attribute), `call_metadata`, `post_call_variables`, `fn_response` (`<nodeId>.<path>`, e.g. `api-basic-1.body.status`), `connected_call`, `voicemail`, `hangup_reason`, `call_duration` (seconds), `conversion_status`, `secret` (API Basic headers only).
 
 The last-call sources are empty until a Send Call has run. Put a Send Call before any Conditions that tests them. `connected_call` is true for `CLIENT_INITIATED`, `PARTICIPANT_REMOVED`, `SESSION_TIMEOUT`; use it instead of testing `hangup_reason` yourself.
+
+**Post-call variables add up across every call in a run; they are not replaced.** A condition on one can match a value an earlier call set, which bites after an Inbound Call (usually a different agent with different variables) and on a second Send Call. To test only the latest call, branch on `conversion_status`, or give both agents the same post-call variables.
 
 ## Condition operators
 
@@ -55,7 +69,7 @@ Node: `{id, type, name, x, y, ...type fields}`. Ids unique, form `<type>-<n>`, n
 
 Import rejects: not exactly one Start; missing or duplicate node id; unknown type; `wait` without minutes; `send-call` without `agentId`; `api-basic` without `url`; `api-advanced` without `code`; `wa-template` without `templateId`; `wa-message` without `message`; Conditions with no exits, duplicate exit ids, or a rule missing its field; `update-lead` with no rows or a row missing attribute, source or needed value; edge to a missing node, out of an End, into Start, or with a bad `fromHandle`; no path from Start to an End. Import does not check that IDs are real, so an invented agent id imports fine and fails on the first call.
 
-On the canvas: Add Node menu (End, Send Call, Send WhatsApp Template, Send WhatsApp Message, Wait, Conditions, API Call Basic, API Call Advanced, Update Contact), "Tidy up" lays nodes out left to right, "Find a node" jumps to one, zoom controls, a "Cannot save" counter lists blocking problems, and a new workflow is saved with the "Create Workflow" button (named "Save" in the docs). Create is at `/workflows/create-normal`. Clicking a node opens its settings panel with Delete node.
+On the canvas: "+" on a node adds the next step (Inbound Call, End, Cancel Workflow, Resume Where They Were, Send Call, Send WhatsApp Template, Send WhatsApp Message, Wait, Conditions, API Call Basic, API Call Advanced, Update Contact), "Re-arrange" lays nodes out left to right, "Find a node" jumps to one, zoom controls, a "Cannot save" counter lists blocking problems, and a new workflow is saved with the "Create Workflow" button (named "Save" in the docs). The list page (`/dashboard/workflows`) has Import and "Create WorkFlow" buttons and status tabs All, Live, In progress, Test, Archived. Create is at `/workflows/create-normal`. Clicking a node opens its settings panel with Delete node.
 
 Create/Save also checks one Start, a Start to End path, live connections, complete node settings. It only warns on unreachable nodes and dead-end branches. Loops are allowed, a run stops itself after 500 steps.
 
@@ -65,7 +79,7 @@ Create/Save also checks one Start, a Start to End path, live connections, comple
 
 ## Cannot do
 
-Parallel branches, wait until a time of day, wait for a WhatsApp reply (no inbound trigger), built-in SMS or email (use API Basic or Advanced), changing an existing workflow by import. Say so instead of faking it.
+Parallel branches, a Wait until a time of day (Send Call's Daily time is the only time-of-day control), wait for a WhatsApp reply (the only inbound trigger is an inbound **call**, through the `inbound` node), a built-in SMS or email step (email is possible inside API Call Advanced with `sendEmail`; SMS needs API Basic or Advanced against your own provider), changing an existing workflow by import. Say so instead of faking it.
 
 ## Plan to node mapping
 
@@ -79,6 +93,7 @@ Parallel branches, wait until a time of day, wait for a WhatsApp reply (no inbou
 | mark lead, update CRM | `update-lead` (CallKaro CRM) or `api-basic` (outside CRM) |
 | notify our system | `api-basic` |
 | stop, close the lead | `end` |
+| if they call us back, stop chasing | `inbound`, `conditions` on `conversion_status`, then `cancel`; Otherwise to `resume` |
 
 ## Enroll
 
@@ -92,7 +107,7 @@ From your own system, `POST https://api.callkaro.ai/workflow/assign`, header `X-
   "schedule_at": "2026-12-31T09:30:00" }
 ```
 
-`schedule_at` optional, IST, two digits everywhere, past time starts now. Attribute keys match CRM attributes ignoring case, spaces, underscores, hyphens. `replace: false` (default) only fills empty values, hand-edited values always win. The response lists `updated`, `kept_existing`, `ignored` (no such attribute, never auto-created) and `invalid`; check `ignored` for typos. Errors: 404 wrong id or key from another account, 409 number already running here (attributes still saved), 400 no steps or bad `schedule_at`. Never retry 400, 404, 409. Retry only 5xx, which can start the run twice.
+`schedule_at` optional, IST, two digits everywhere, past time starts now. Optional `batch_id` (a campaign that already exists on the same account) tags the run and the calls it places with that campaign. Attribute keys match CRM attributes ignoring case, spaces, underscores, hyphens. `replace: false` (default) only fills empty values, hand-edited values always win. The response lists `updated`, `kept_existing`, `ignored` (no such attribute, never auto-created) and `invalid`; check `ignored` for typos. Errors: 404 wrong id or key from another account, 409 number already running here (attributes still saved), 400 no steps or bad `schedule_at`. Never retry 400, 404, 409. Retry only 5xx, which can start the run twice.
 
 ## Monitor and debug
 
@@ -109,4 +124,4 @@ Operate workflows and CRM contacts directly from the CLI (see `callkaro-cli`):
 
 ## Full spec
 
-`REFERENCE-official-spec.md` in this folder is CallKaro's own complete workflow spec (every field, layout rules, what import rejects, a full worked example). Read it before writing or editing a non-trivial workflow file, and treat it as the source of truth if it disagrees with the summary above. It is also published at https://docs.callkaro.ai/workflows/build-with-claude. Give the model the voice agent ids and CRM attribute names up front, or it returns placeholders. Import creates the workflow, fix the placeholder steps, then enroll.
+`REFERENCE-official-spec.md` in this folder is CallKaro's own complete workflow spec (every field, layout rules, what import rejects, a full worked example). Read it before writing or editing a non-trivial workflow file, and treat it as the source of truth if it disagrees with the summary above, with one exception: the official file is dated 9 Oct 2026 and predates the `inbound`, `cancel` and `resume` nodes, the newer Send Call settings and `sendEmail`. For those, this file and `cku workflows schema` are current. It is the download linked from https://docs.callkaro.ai/workflows/build-with-claude. Give the model the voice agent ids and CRM attribute names up front, or it returns placeholders. Import creates the workflow, fix the placeholder steps, then enroll.

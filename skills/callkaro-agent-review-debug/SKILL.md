@@ -45,7 +45,7 @@ Output format when not producing the workbook:
 
 ## Debugging: root cause, never a patch
 
-1. **Evidence.** Get real call ids. Read the transcript (`cku calls get <id>`) and the raw log (`cku calls logs <id> "grep -E ' - (ERROR|WARNING) - ' /call.log"`). Note the exact turn where behaviour went wrong and which capability or node was active. Check `chat_history[].metrics.llm_metadata.model_name` first: a `FallbackAdapter` turn means the platform's degraded model ran, so behavioural faults in it are infrastructure, not prompt.
+1. **Evidence.** Get real call ids. Read the transcript (`cku calls get <id>`) and the raw log (`cku calls logs <id> "grep -E ' - (ERROR|WARNING) - ' /call.log"`). Note the exact turn where behaviour went wrong and which capability or node was active. Check `chat_history[].metrics.llm_metadata.model_name` first: a `FallbackAdapter` turn means the platform's degraded model ran, so behavioural faults in it are infrastructure, not prompt. To see whether a tool was called, look in `chat_history` for items of type `function_call` (and their outputs): they have **no `role`**, so a filter on `role` or on a `tool_calls` field finds nothing and wrongly reads as "the model never called it". Cross-check with `functions_called`, which the platform fills for every in-call result. The platform's own filler ("अच्छा", "um", "uh" after 2 s of bot silence) also appears in `chat_history`; it is not something the prompt produced.
 2. **Frequency.** How often? Look across calls (`cku calls list`, post-call flags) and reproduce in simulation (several runs, `cku sim run ... --epoch 5 --wait`). A one-off and a 40 percent failure are different problems.
 3. **Root-cause layer.**
 

@@ -11,12 +11,12 @@ Docs: https://docs.callkaro.ai/ (Guides section, Voice AI Agents)
 
 ## Setup modes
 
-System prompt plus pre-call variables (name, email, address). Three ways to write it:
+System prompt plus pre-call variables (name, email, address). Four ways to write it. The docs number them Mode 1 to 4; the API field `systempromptType` counts from 0, so docs "Mode 4" is type 3:
 
-- Basic: single prompt, small use cases
-- Advanced: structured sections, most production agents
-- Multi-Prompt / Capability mode: split skills per capability
-- Pathway (Mode 4): visual node flow with conditions and actions
+- Basic (Mode 1, type 0): single prompt, small use cases
+- Advanced (Mode 2, type 1): structured sections, most production agents
+- Multi-Prompt / Capability mode (Mode 3, type 2): split skills per capability
+- Pathway (Mode 4, type 3): visual node flow with conditions and actions
 
 Pick Basic for prototypes, Advanced for real work, Pathway when the flow has strict branches (lead qual, collections, support triage).
 
@@ -24,7 +24,7 @@ Pick Basic for prototypes, Advanced for real work, Pathway when the flow has str
 
 **Per-capability `endpointing` and `vad_configuration` (types 2 and 3):** each capability/node in `capabilities[]` accepts:
 - `"endpointing": { "mode": "fixed" | "dynamic", "min_delay": 0.5, "max_delay": 3 }` (`min_delay` 0–1s reduces premature cutoffs; `max_delay` 0–6s caps wait; `dynamic` adapts within those bounds). Send the whole `endpointing` object when updating.
-- `"vad_configuration": { "manual_interruption_duration": 1.2 }` (dashboard label **Capability VAD Overrides** / **Node VAD Overrides**, range `0.3`–`5`s, step `0.1`, default `1.2`s). Overrides the version-level `vad_configuration.manual_interruption_duration` for that capability or node only; all other VAD parameters are inherited from the version. Use a higher duration on disclosure, T&C, or number read-out nodes so the caller hears the whole line, and a lower duration on open Q&A and negotiation nodes for fast barge-in.
+- `"vad_configuration": { "manual_interruption_duration": 1.2 }` (dashboard label **Capability VAD Overrides** / **Node VAD Overrides**, range `0.3`–`5`s, step `0.1`, default `1.2`s; the pathway node slider in the dashboard showed `0.2`–`3.0`s in Nov 2026, so stay inside `0.3`–`3` to be safe on both). Overrides the version-level `vad_configuration.manual_interruption_duration` for that capability or node only; all other VAD parameters are inherited from the version. Use a higher duration on disclosure, T&C, or number read-out nodes so the caller hears the whole line, and a lower duration on open Q&A and negotiation nodes for fast barge-in.
 
 **UI fields that may not persist:** `dtmf_collection_enabled` and `callPropertyMapping` return HTTP 200 on write but are not declared on the version schema in some deployments and silently drop. Always read the version back (`cku agents get <id> --versions <vid> --json`) to verify they round-tripped before promising them.
 
@@ -65,6 +65,9 @@ Post-call extraction recommended model: `callkaro/krishna-2.5`.
 - Cartesia (~Rs 4): best for other languages. Breaktime works.
 - Sarvam (~Rs 4): all languages, Breaktime lags.
 - Azure (~Rs 2): budget bots.
+- Smallest AI: the team's default for new builds (see Team configuration defaults). The docs' voice page still lists only the four above.
+
+Provider dropdown in the dashboard (Nov 2026): Azure, Callkaro, Cartesia, Deepgram, Eleven Labs, Gnani, Murf, Sarvam, Smallest AI, Speechify. Lists are per account; `cku voices --providers` is the source of truth.
 
 Tune speed, stability, similarity boost, style per provider. No emojis or special chars in prompts, they break live calls.
 
@@ -75,11 +78,12 @@ Tune speed, stability, similarity boost, style per provider. No emojis or specia
 ## Transcriber
 
 - Deepgram: best English accuracy, keywords support.
-- Groq: fastest.
 - Sarvam: best Hindi and Hinglish, 12 Indian languages.
 - Azure: enterprise grade, Indian language coverage.
 - ElevenLabs: pairs with ElevenLabs voice.
 - Soniox: fine tune via UI, multi language, context and translation terms.
+
+Provider dropdown in the dashboard (Nov 2026): Deepgram, Sarvam, Azure, Eleven Labs, Soniox, Callkaro, Smallest AI, Cartesia, Gnani. Groq is in older docs but is not offered. The transcriber's Advanced settings (General Context up to 10 pairs, Translation Terms up to 20, Keywords) carry the warning "increases cost, use only when default settings are not performing well".
 
 Add brand names and short forms as Keywords so they transcribe right.
 
@@ -117,7 +121,7 @@ Providers that exist but rarely show up in exports: **Gnani** (`en-IN,hi-IN`), *
 
 `default_agent_language`, `voice_configuration.voice_language`, and `transcriber.transcriber_language` must tell the same story, each in **its own provider's format** — never reshape `"hi"` ↔ `"hi-IN"` ↔ `["hi-IN"]` between them. Mismatches produce an agent that speaks one language and transcribes another, which looks like a model problem and isn't. If `language_switching` is on, the transcriber must cover every language in `switchableLanguages`, which means an array-language provider (Soniox or Azure).
 
-For a multilingual agent the prompt and these fields must also agree: `language_switch_min_words` equals the prompt's N, `allowed_languages` lists the supported languages (empty is a miss), every spoken language is in the transcriber list, `silence_language` is `multi`, and `end_call_msg` carries a closing line for every language. Full table, test script and failure fixes: `callkaro-language-switching`. Prompt body structure (SAY vs composed lines): `callkaro-conversational-agents`.
+For a multilingual agent the prompt and these fields must also agree: `language_switch_min_words` equals the prompt's N, `allowed_languages` lists the supported languages (the platform reads empty as "any supported language", so leaving it empty lets the agent switch into a language the prompt and voice do not cover), every spoken language is in the transcriber list, `silence_language` is `multi`, and `end_call_msg` carries a closing line for every language. Full table, test script and failure fixes: `callkaro-language-switching`. Prompt body structure (SAY vs composed lines): `callkaro-conversational-agents`.
 
 ## Versions and A/B tests
 
@@ -130,9 +134,11 @@ One agent, many versions (language, city, goal). Run standard split by percent, 
 
 Rules run top down, first match wins. Text compare is case insensitive. Missing metadata matches `!=` but not `==`. A rule returns a Version directly, or a Language (then standard split, published version, default config in that order). Splits inside a rule must total 100.
 
-**Always end the rule chain with a trailing `else`.** City/state rules are string equality on whatever key the CRM sends (`lead_information_city` in the Spinny account). Without a final else, leads whose city key is missing or spelled differently fall through to whatever the platform default is — not necessarily your base version. Missing metadata matches `!=` but never `==`, so an equality-based chain silently drops those leads.
+**Always end the rule chain with a trailing `else`.** City/state rules are string equality on whatever key the CRM sends (`lead_information_city` in the Spinny account). Without a final else, leads whose city key is missing or spelled differently fall through to standard A/B and then published-version resolution — not necessarily your base version. Missing metadata matches `!=` but never `==`, so an equality-based chain silently drops those leads.
 
 **City-list maintenance is manual and drifts.** In the 301-agent account survey, exactly one agent family had geography rules (2 branches: 7 Punjab cities, Delhi NCR) while six other language versions had none — routing for those came from per-row `x_language` on batch CSVs instead. Plan for both: batch `x_language` when the upstream system knows the language, advanced A/B rules for city-driven accents, and a trailing else so nothing is unrouted.
+
+**Where advanced A/B applies (docs).** Only direct API calls, regular outbound calls and inbound agent resolution. **Batch calls and WhatsApp agent resolution ignore the rules** and keep their own version selection, so a batch campaign needs per-row `x_language` or a batch split upstream. Inbound routing gets no call metadata, so only the `else` block can match there. A version sent explicitly with the call request always bypasses the rules.
 
 ## Functions
 
@@ -171,14 +177,14 @@ Where negotiation-style agents converge: `calculate_next_negotiation_price` is t
 Starting points from the team that builds these agents. Where they differ from the account survey above, the survey is what exists in the account; these are what the team recommends for a new build.
 
 - **LLM**: default `callkaro/arjuna-2.5`. Smaller prompts and a straightforward flow: `gpt-5.6-luna` or `gpt-5.4-mini`. Large prompts or heavy reasoning (a long negotiation stage): `gpt-4.1`. Do not use `gpt-5.6-terra` or `gpt-5.6-sol`. Multi-prompt and pathway agents set models per capability or node, so a small start stage can run a small model. Secondary is a compatible fallback used only if the primary fails.
-- **Temperature scales differ**: top-level `temperature` is 0 to 10 (send 3 for 0.3); capability `llms.temperature` is 0 to 1. Observed range 0.2 to 0.3.
+- **Temperature scales differ**: top-level `temperature` is 0 to 10 (send 3 for 0.3); capability `llms.temperature` is 0 to 1. Observed range 0.2 to 0.3. A per-capability `temperature` of 0 is ignored, and a capability with its own `llms` makes the platform rebuild the LLM on every switch into it.
 - **Transcriber**: Soniox is the team's first choice (select only the languages this version must support; leave context fields empty), Sarvam second (lower latency, one language per config), Smallest AI and Azure good. Other providers are not used. `secondary_transcriber` only on failure; `useMultiTranscribers` is deprecated, leave it.
 - **Voice**: Smallest AI is the default, ElevenLabs is polished and stable but dearer, Sarvam is more natural but rougher with lower latency and cost. Voice gender must match the persona gender; if unsure, copy the voice from an existing agent of the same language and gender and flag it.
 - **Language fields**: `language_switching: true` for same-version implicit switching (the platform marks it legacy, but the backend runs the current implementation behind it); do not set `language_lockin_time`; leave `language_switching_v1` false; `switchableLanguages` is a different thing (hands the call to another published version). See `callkaro-language-switching`.
 - **Opening**: `speakfirst.value` 0 waits for the caller, 1 generates an opening, 2 speaks `customMsg`. If the platform speaks first, the prompt must say so and not repeat the greeting.
 - **Ending**: calls end only by speaking a line listed in `end_call_msg`, in every language the version speaks. Do not use the `end` function.
 - **Speech hygiene (every agent, unless the user says otherwise)**: models sometimes write control tokens, prompt markers or a function name into the reply text, and the voice reads them out ("Thank you for your time. end_call" was spoken on a live Auction Remarketing call). Two settings strip them before TTS; set both on every new version:
-  - **Save it as `substrings_to_remove`.** The dashboard labels the list "Punctuations to remove", but `PUT /v2/agents/<a>?version=<v>` with a `punctuations_to_remove` key answers "Agent Updated Successfully!" and stores nothing (verified on Auction Negotiations, 27 Oct 2026). Send the list under `substrings_to_remove` (the CLI validator checks that key too), then pull the version back and confirm `substrings_to_remove` holds it. Live versions may show both keys with the same list; read both before merging.
+  - **Save it as `substrings_to_remove`.** The dashboard list is now labelled "Substrings to Remove from Speech" (Settings, Call Settings; it was "Punctuations to remove"), but `PUT /v2/agents/<a>?version=<v>` with a `punctuations_to_remove` key answers "Agent Updated Successfully!" and stores nothing (verified on Auction Negotiations, 27 Oct 2026). Send the list under `substrings_to_remove` (the CLI validator checks that key too), then pull the version back and confirm `substrings_to_remove` holds it. Live versions may show both keys with the same list; read both before merging.
   - If the version moves from ElevenLabs v3/v4 to Sarvam, Smallest, Cartesia or v2.5, first remove every `[pause]`, `[sighs]`, `[softly]` and other `[bracket]` audio tag from the prompt and the begin message. Those voices speak the tag text aloud. Add tag names to the removal list only as a safety net; the prompt is the real fix.
   - `punctuations_to_remove` / `substrings_to_remove`: start from this list (live on Auction Negotiations and Auction Remarketing, Oct 2026), then add the name of every in-call function the version has:
     ```json
@@ -196,6 +202,16 @@ Design, prompt, function, post-call, review and QA guidance for these agents: `c
 
 Attach large reference material that will not fit in the prompt. Add a Say While Executing line such as "Ek min sir, abhi dekh kar batata hu" so the caller hears something during lookup.
 
+## Call Memory, voice rotation, fillers, agent transfer, pronunciations
+
+Five dashboard settings that replace work people otherwise do in the prompt or in code.
+
+- **Call Memory** (Settings, Call Memory tab; off by default; the docs say the switch is shown to master admins only). When on, functions get `x_call_history`: earlier calls with the same phone number, newest first, never the current call. Options: calls to fetch (default 10, max 200), connected calls only (default yes), days back (default 30, 0 is no limit), other agents' calls (default this agent only), include transcripts (default no, makes the list much larger). **It is never added to the prompt by itself.** A pre-call function reads it and writes a short summary into the prompt. Fields and rules: `callkaro-functions`.
+- **Voice Rotation on Retry** (same tab, works with Call Memory off). The next call to a contact uses the next voice in a list of up to 5 retry voices when the previous call matched a condition: **Instant hangup** (connected but the user never spoke) or **Custom** rules that must all match (post-call variable, hangup reason, call duration, conversion status). After the last voice: keep the last one (default), go back to primary, or start the list again. Use it for leads who pick up and drop on the first voice.
+- **Filler Configuration** (own tab): `None`, `Dynamic` (an LLM writes a short filler; needs a low-latency model and a prompt asking for 1 to 4 words, no questions, no promise) or `Static` (random pick from your phrase list, no LLM, fastest and most predictable). Filler Delay is how long to wait before playing one; if the reply is ready first, the filler is skipped. Prefer Static with several short phrases over telling the model to say "hmm" in the prompt, and avoid phrases that commit to an outcome ("Yes, I can do that").
+- **Call Transfer to Agent** (Transfer & Language tab): hands the live call to **another AI agent**. Fields: Agent, When to Transfer, Message Type While Transferring (Static or None), Start Message Type After Transfer (Static or Dynamic). This is separate from the `transfer_call` function, which goes to a human number.
+- **Custom Pronunciations** (Formatting tab): map a word to how it should be spoken ("Rajesh" to "Raa-jesh"). It is the fix for a mispronounced name or brand. Mapping a function name to `""` (see Speech hygiene) is a second use of the same table.
+
 ## Post-call variables
 
 Extract Customer Name, Email, Interested Product, Appointment Date. Types: Text, Selector (fixed list), Boolean, Number. Set Conversion Reason (example: Demo Booked) and Call Drop-off Reasons. Use different strategy models per call length segment, skip analysis for very short calls.
@@ -204,7 +220,7 @@ Extract Customer Name, Email, Interested Product, Appointment Date. Types: Text,
 
 ## Key configs
 
-Call initiation: user speaks first, agent natural, or agent with custom message plus initial delay. Call termination: custom closing message ends the call. Call settings: Indian number format, auto reschedule, followup, background noise plus volume, noise cancellation (use Callkaro strategy, strength 1.00 to start), voicemail dynamic or custom, time limit, disconnect timeout. TTS caching: full response (lowest latency), sentence level (balance), none (flexible). Silence, endpointing, interruption, preemptive synthesis, language switching per docs.
+Call initiation: user speaks first, agent natural, or agent with custom message plus initial delay. Call termination: custom closing message ends the call. Call settings: Indian number format, auto reschedule, followup, background noise plus volume, noise cancellation (use Callkaro strategy, strength 1.00 to start), voicemail dynamic or custom, time limit, disconnect timeout. TTS caching: full response (waits for the whole LLM reply before speaking), sentence level (speaks sentence by sentence as the reply streams), none; see TTS caching strategy below. Silence, endpointing, interruption, preemptive synthesis, language switching per docs.
 
 ### Time limit is a design input, not a default
 
@@ -212,8 +228,8 @@ Call initiation: user speaks first, agent natural, or agent with custom message 
 
 ### Silence settings: three knobs, not one
 
-- `silence_wait` (seconds before a silence prompt fires) — most agents in the account run 4–8s; long negotiation bots sit at 6–8s
-- `silence_count` (how many consecutive silent gaps before prompting, dashboard label "Silence Message Count", default 2) — 2 is the common floor, 3–5 for patient/browsing flows
+- `silence_wait` (dashboard "Wait Till User Reply (sec)": seconds before a silence prompt fires) — most agents in the account run 4–8s; long negotiation bots sit at 6–8s
+- `silence_count` (dashboard "Silence Message Count": how many times the agent repeats the silence message before it ends the call; it is not a count of gaps before the first prompt) — 2 is the common floor, 3–5 for patient/browsing flows. Set it explicitly; do not rely on a default
 - `silence_mode` — `custom` (your own `silence_prompts`) vs `dynamic` (platform free-generates an unscripted line) vs `ignore`
 
 **Transcriber switching after 2nd silence message:** when the caller appears silent and the 2nd silence message fires, the runtime switches from the primary `transcriber` to `secondary_transcriber` (in addition to failing over on provider error). This recovers calls where the primary STT failed to transcribe the caller's audio while they were actually speaking. Always configure `secondary_transcriber` with a different provider and matching language, and keep `silence_count` at 2 or higher so the failover can fire before the call disconnects.
@@ -232,7 +248,20 @@ Prefer `custom` with two fixed, on-brand lines. `dynamic` generates plausible-so
 
 ### TTS caching strategy, by call shape
 
-`caching_strategy` in the account split by flow length: `response` (cache the whole LLM response) dominated long negotiation and qualification agents, `sentence` appeared on mid-length reminder flows, `none` on short/opener-heavy or highly dynamic agents. Full-response caching is lowest latency but wrong when the same prompt text can resolve to different spoken content (any prompt that embeds a changing price or variable).
+`caching_strategy` in the account split by flow length: `response` (cache the whole LLM response) dominated long negotiation and qualification agents, `sentence` appeared on mid-length reminder flows, `none` on short/opener-heavy or highly dynamic agents. What the two settings do at runtime (backend source, `agent.py`, read Nov 2026): **`response` waits for the entire LLM reply before any audio starts; `sentence` starts speaking after the first sentence and streams the rest.** So `response` only wins when the whole reply is a cache hit (a fixed, repeated line). On a generated reply it adds the full generation time before the first word, which is felt most on long turns. For a conversational agent whose replies vary, `sentence` gives the earlier first word; keep `response` for agents that mostly speak fixed scripted lines. Either way it is wrong to expect a cache hit when the same prompt text can resolve to different spoken content (any line that embeds a changing price or variable). An earlier version of this skill called full-response caching "lowest latency"; that is true only for cache hits.
+
+## Runtime behaviour to design around (backend source, read Nov 2026)
+
+Things the platform does that no setting or prompt line shows you. Each one explains a class of "why did the bot do that" call.
+
+- **Platform filler monitor.** After 2 s of bot silence the platform itself says "अच्छा", "um" or "uh". It cannot be turned off, it is separate from Filler Configuration, and it is written into `chat_history`. Do not debug it as a prompt fault, and do not add your own "hmm" rule on top of it for the same gap.
+- **Turn detection is VAD only.** There is no semantic end-of-turn model: the endpointing delays and VAD settings are the whole of turn-taking. A caller who pauses mid-sentence longer than the delay has ended the turn.
+- **`interrupt_min_words` also gates manual interruption**, not only ordinary barge-in. With it at 3, a one or two word interjection ("haan", "ruko") never interrupts, however long `manual_interruption_duration` is.
+- **VAD values are converted before use**, and not all the same way: `threshold` is divided by 10, `silence_duration` is converted from milliseconds to seconds, and `min_speech_duration` is used as raw seconds. Read the dashboard helper text for each unit and check the stored value after an API write.
+- **Voicemail and hold are string matches.** A fixed list of phrases is checked against the call's speech. "person is not available" hangs the call up at once as voicemail, and "वन मोमेंट" is treated as a hold request. Keep such phrases out of anything the bot is scripted to say or to repeat back, and remember a real person saying "one moment" is put on hold.
+- **`end_call_msg` matching has no speaker filter.** The call ends when a listed closing phrase is matched, even if the **customer** said it. Make closing lines specific enough that a caller will not say them ("Thank you for your time, have a good day" rather than "ok bye").
+- **`insert_metadata_in_prompt`** (dashboard: Formatting, Pre Format Variables, "Insert Metadata in System Prompt") decides whether the call metadata is added to the system message the platform assembles from the base prompt, snippets, the active capability or node and its transitions. With it off, the model sees only the `{{vars}}` you placed yourself. The exact assembly order was not captured in the source read; pull one call's runtime prompt from the log before relying on position.
+- Switching, pre-call order, `{{key}}` freezing and the tool-call rules: `callkaro-agent-design` (pathway mechanics) and `callkaro-functions` (execution order, what the platform does around an in-call tool).
 
 ## IVR nodes (pathway type 3 only)
 

@@ -53,7 +53,7 @@ The highest-leverage field, up to 10,000 characters, blank is valid (all calls, 
 
 ### 4. Header controls
 
-Auto RCA (`nightly_rca_enabled`, default on; off stops only the nightly run, manual runs still work). Auto Report (`report_enabled`, default off). RCA Model (`rca_model` + `rca_llms`): `gpt-5.6-luna` (default, `azure-openai`), `gpt-5.6-sol` (`azure-openai`), `callkaro/krishna-2.5` (`callkaro`), Claude Sonnet 4.6 (`bedrock`), Claude Opus 4.6 (`bedrock`).
+Auto RCA (`nightly_rca_enabled`, default on; off stops only the nightly run, manual runs still work). Auto Report (`report_enabled`, default off). RCA Model (`rca_model` + `rca_llms`): `gpt-5.6-luna` (default, `azure-openai`), `gpt-5.6-sol` (`azure-openai`), `callkaro/krishna-2.5` (`callkaro`), Claude Sonnet 4.6 (`bedrock`), Claude Opus 4.6 (`bedrock`). This list and default were read from the dashboard bundle; the public docs instead list "GPT-5.4 (default), GPT-5.6 Sol, GPT-5.6 Luna, Claude Opus 4.6, Claude Sonnet 4.6", so check the dropdown on the account before quoting a default.
 
 ### 5. KPI Report builder (Report section)
 
@@ -76,9 +76,33 @@ The Report section lays out an emailed report on one or more A4 sheets (`794 x 1
 - **KPI metrics**: `metric:<metricName>` (shows actual % vs target %).
 
 #### Writing expressions (for Custom Variables & Expression Data Sources)
-- **Fields**: `post_call.<name>`, `metadata.<key>`, `is_connected`, `is_converted`, `hangup_reason`, `call_duration`.
-- **Operators**: `&&`, `||`, `!`, `==`, `!=`, `>`, `>=`, `<`, `<=`, and `in ['a', 'b']`.
-- A bare field like `post_call.is_car_sold` means "is true". Text comparisons are case-insensitive.
+An expression is a test run on one call at a time; every call where it is true is counted. So it can filter calls but **cannot average, sum or group**. For averages and totals of latency, cost or duration use the call metrics below.
+- **Fields**: `post_call.<name>`, `metadata.<key>` (text), `is_connected`, `is_converted`, `call_duration` (seconds), `hangup_reason`, `drop_off_reason`, `disposition_reason`, `direction` (`'inbound'` or `'outbound'`).
+- **Operators**: `&&`, `||`, `!`, `( )` for grouping, `==`, `!=`, `>`, `>=`, `<`, `<=` (numbers only), `in ['a', 'b']`, `not in ['a']`.
+- A bare field like `post_call.is_car_sold` means "is true". Text comparisons are case-insensitive. Put text values in quotes.
+- Compare a field with a fixed value, never with another field. No functions, no arithmetic. Data source values cannot be used inside an expression (add them to the report as variables instead).
+- **Generate with AI** drafts an expression from a description and tests it before showing it (Accept, Test edit, Regenerate). Only the description and the agent's field names and reason codes are sent, never call content. An expression can be valid and still match nothing: check the spelling of the field and the value.
+
+| Error | Fix |
+|---|---|
+| Syntax error near column | A missing value or an extra `&&`. |
+| Unknown field / Not defined on this agent | Use a field from the list; the post-call variable or metadata key is not set up on this agent. |
+| Compare a field with a value, not with another field | Both sides are fields; compare with a fixed value. |
+| `>` and `<` only work with numbers | Text compared with `>`; use `==` or `in`. |
+| `in` needs a list of values | Use square brackets, `['a', 'b']`. |
+| Unsupported syntax | A function or arithmetic was used. |
+
+#### Call metrics (Cost & Latency in the report builder)
+Pick an aggregation with **Show**, then add the metric like any other variable. They are the same values Call History shows per call.
+
+| Metric | Unit | Aggregations |
+|---|---|---|
+| Latency, LLM latency, TTS latency, EOU delay | seconds | Avg, Median, P90, P95, Min, Max |
+| Call duration | seconds | the same, plus Total |
+| Cost | credits | Avg, Median, P90, P95, Min, Max, Total |
+| Calling, LLM, TTS, STT and analysis cost | credits | Avg, Total |
+
+Calls with no value are left out of the aggregate, and a value of 0 counts as no value. "Avg cost per call" divides by every call including unanswered ones (it matches Avg Credits/Call in Analytics); "Avg cost per charged call" divides only by charged calls. With no values in range, averages and percentiles show a dash and totals show 0. `cku kpi report schema` does not list these refs yet; add them in the dashboard.
 - Examples (from MG Motors Test Drive Qualifier `6a888bb8bbb7ca9f239df560` on Vapour Sarjapur):
   - `is_connected && post_call.test_drive_booked == 'YES'`
   - `is_connected && post_call.visit_preference == 'HOME_VISIT'`
@@ -151,13 +175,13 @@ Categories: Agent behaviour, Function call or integration, Post-call measurement
 
 ## Pending Tasks board
 
-Columns: Action Items (new cards land here), In Progress, Testing in A/B, Live in Prod, Done, Rejected. A card can be assigned to a person or to AI FDE, given target agent versions, re-severity'd, commented on, given attachments, dragged or moved, imported in bulk (`POST /pending-tasks/import`), or created by hand. Nothing reaches AI FDE unless a person assigns the card; if AI FDE is already working that agent version the new fix queues until the current one is Done or Rejected. Read the evidence and prompt excerpt before assigning.
+Columns: Action Items (new cards land here), In Progress, Testing in A/B, Live in Prod, Done, Rejected. A card can be assigned to a person or to AI FDE, given target agent versions, commented on, given attachments, dragged or moved, imported in bulk (`POST /pending-tasks/import`), or created by hand. The docs also say you can "set or adjust severity" on a card; from the CLI severity is set only at create (`cku kpi set` writes the description and nothing else), so change it in the dashboard. Each column has its own Create, Import CSV and Export CSV buttons, and the board filters by card source, assignee, agent and date. Nothing reaches AI FDE unless a person assigns the card; if AI FDE is already working that agent version the new fix queues until the current one is Done or Rejected. Read the evidence and prompt excerpt before assigning.
 
 From a terminal, use `cku kpi` (see `callkaro-cli`, section KPI manager). It reads and writes this same board. Rejected is how a card is retired, there is no delete.
 
 ## Run Manual RCA
 
-Run Manual RCA view: pick the agent, filter by date and other criteria, select calls (count shown), Run RCA, then set Target (%), RCA Model and an optional RCA prompt (this run only, does not overwrite the saved one). Works even with Auto RCA off. Takes a few minutes in the background; the report lands in History, RCA tagged Manual. Use it to test a prompt idea, chase one complaint, or analyse one campaign.
+Run Manual RCA view: the RCA analyses exactly the calls matching the filters (call type, include batch, agent, hangup reason, duration, date range, phone number, conversion status, plus the account's metadata filters). Pick the agent, filter, check the selected count, Run RCA, then set Target (%), RCA Model and an optional RCA prompt (this run only, does not overwrite the saved one). Works even with Auto RCA off. Takes a few minutes in the background; the report lands in History, RCA tagged Manual. Use it to test a prompt idea, chase one complaint, or analyse one campaign.
 
 ## Troubleshooting
 

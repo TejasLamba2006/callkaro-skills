@@ -52,6 +52,8 @@ Global rules for extraction. A pattern that works: extract only what the transcr
 | `11-30`, `31-60`, `>60` | `callkaro/krishna-2.5` |
 | `only_agent_turns` | `DEFAULT_VALUES` |
 
+The dashboard (Post-call, Post Call Strategy, Primary and Secondary Strategy tabs) labels the same rows "0-10 seconds", "10-30 seconds", "30-60 seconds", ">60 seconds" and "Only agent turns". The table above is the recommended starting point, not what every agent has: read the version's `post_call_strategy` before assuming.
+
 `DEFAULT_VALUES` skips extraction and uses the configured defaults. `postcallmodel` is a legacy fallback; use `post_call_strategy`. Model ids come from `cku models --slot post-call` (slots differ: some agent models are not allowed here).
 
 ## Conversion and disposition

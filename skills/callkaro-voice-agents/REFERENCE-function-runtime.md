@@ -230,12 +230,16 @@ Primary and fallback providers with `max_retry_per_tts` 2. Both observed provide
 
 ### LLM (`agent.llm`, a `FallbackAdapter`)
 
-`attempt_timeout` 6 s, `max_retry_per_llm` 0, `retry_interval` 0.5 s, `retry_on_chunk_sent` false. The primary
+`attempt_timeout` is 6 s when the primary is `callkaro/arjuna-2.5` and 10 s if either the primary or the
+secondary is a Gemini model (backend source, `llm_model.py`, read Nov 2026; other pairs not recorded here, so
+measure them). `max_retry_per_llm` 0, `retry_interval` 0.5 s, `retry_on_chunk_sent` false. Arjuna's prompt
+cache is per call: nothing carries over from one call to the next, so the first turn of every call pays for
+the whole prompt. The primary
 is served through the platform's own LLM gateway; the fallback is an Azure OpenAI model through the Responses
 API. The agent's model name in config (for example `callkaro/arjuna-2.5`) is not the name the object carries:
 the object reports the gateway's internal model name.
 
-Consequence seen on a real call: a primary that gives no answer within 6 s is abandoned for the fallback with
+Consequence seen on a real call: a primary that gives no answer within the timeout (6 s there) is abandoned for the fallback with
 no retry, and the caller can hang up before the fallback answers. That call ended with zero LLM tokens and no
 greeting, so a first-turn greeting that depends on the LLM is exposed to this. `update_llm` is what the
 platform calls on every capability switch.

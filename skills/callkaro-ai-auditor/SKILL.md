@@ -54,7 +54,7 @@ Sidebar, Audit Reports. Choose Strategy or Batch, optionally pick agents, set da
 
 | View | Shows |
 |---|---|
-| Strategy | Per strategy: Agent Name, Transcriber, Callflow, Postcall and Function accuracy, Total Calls. Use for trends. |
+| Strategy | Per strategy, columns in order: Strategy Name, Agent Name, Callflow Accuracy, Postcall Accuracy, Function Accuracy, Language Switch Accuracy, System Performance, Overall Score, Transcriber Accuracy, Total Calls, Total Cost, then View details. A Voice Audits / Chat Audits toggle sits above the table. Use for trends. |
 | Batch | Each automatic run: agent, strategy, audit time, status, total, completed and failed calls, quality scores. Use to check one run. |
 
 Batch status: Queued (waiting), Running, Completed, Partial Failed (some calls failed), Failed. "No audit reports to display" means nothing matched: check the strategy is enabled and saved, calls match its filters, agent and dates are right, and enough time has passed.

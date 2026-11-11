@@ -28,7 +28,7 @@ The prompt writes the words; these fields carry the mechanical half.
 |---|---|---|
 | `language_switching` | true | switches transcriber and voice when the transcript changes language |
 | `language_switch_min_words` | the same N as Section 0A.1 | prompt and platform detector otherwise disagree |
-| `allowed_languages` | the supported languages in 0A.1 | limits what the backend may switch into; empty on a multilingual agent is a miss |
+| `allowed_languages` | the supported languages in 0A.1 | limits what the backend may switch into. The platform reads empty as "any supported language", so empty on a multilingual agent lets it switch into a language the prompt and voices do not cover; list them explicitly |
 | Transcriber languages | every supported language | a language the transcriber lacks is misheard, so the test fails |
 | `default_language`, `default_agent_language` | the opening language | platform speaks the first line in it |
 | `speakfirst.customMsg` | a line in the opening language | nothing else decides the first sentence |

@@ -24,7 +24,8 @@ async def update_call_data_metadata(call_data: dict) -> dict:
                 metadata[key] = value
         call_data["metadata"] = metadata
     except Exception as e:
-        logger.error("P0 fetch failed for lead_id=%s: %s", lead_id, str(e))
+        # logger.warning, never logger.error (platform docs, pre-call functions)
+        logger.warning("P0 fetch failed for lead_id=%s: %s", lead_id, str(e))
     return call_data
 ```
 

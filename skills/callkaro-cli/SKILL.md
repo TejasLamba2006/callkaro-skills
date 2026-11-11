@@ -15,6 +15,13 @@ They are **separate programs that share nothing**. Both are usually installed.
 work identically on either — substitute `ck` for `cku` if that is what is
 available. Check with `cku --version`.
 
+Install (Node 18 or newer): `npm install --global callkaro-cli-unofficial` for
+`cku`. The official one is `npm install --global @callkaro-official/cli` (or
+`curl -fsSL https://cli.callkaro.ai/install.sh | bash`) and installs as both
+`ck` and `callkaro`. Two differences when substituting: official `ck login`
+asks for the account's credentials in the terminal where `cku login` opens a
+browser, and `ck register` (create an account) has no `cku` counterpart.
+
 ## Before anything else
 
 ```bash
@@ -919,6 +926,16 @@ Targets: `--claude --cursor --copilot --gemini --windsurf --roo --opencode
 --cline --codex --all`, plus `--project` to install into the repo instead of
 your user account. Skills ship from GitHub, so a new skill reaches users
 without a CLI release.
+
+**Update notices (0.9.4).** After a command finishes, `cku` may print one of
+two notices on **stderr**: a newer CLI is on npm (run `cku update`, which also
+refreshes skills), or the skill pack repo has changed since it was installed
+(run `cku skills update`). If you are an agent and see either, tell the user
+and ask before running the update. The check runs in the background at most
+once a day and never delays a command. The skill notice needs one
+`cku skills install` or `cku skills update` on this version to record what is
+installed. `CK_NO_UPDATE_CHECK=1` turns both off; set it in scripts that read
+stderr.
 
 ## Exit codes and errors
 

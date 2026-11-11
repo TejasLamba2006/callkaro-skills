@@ -1,4 +1,4 @@
-<!-- Verbatim copy of the official CallKaro workflow spec, fetched 2026-10-13 from https://docs.callkaro.ai/workflows/build-with-claude. Source of truth if it disagrees with SKILL.md. -->
+<!-- Verbatim copy (frontmatter removed) of the official CallKaro workflow spec: the callkaro-workflow-skill.txt download linked from https://docs.callkaro.ai/workflows/build-with-claude, file dated 2026-10-09. Re-checked 2026-11-11: byte-identical to the file still linked there. The file predates three node types the product and docs now have (inbound, cancel, resume), the Send Call settings Language / Daily time / Carry Over / Trigger Window, and sendEmail in API Call Advanced. For those, SKILL.md and `cku workflows schema` are right and this file is silent or wrong (it says "ten types" and "no email"). For everything else this file is the source of truth. -->
 
 # CallKaro workflows
 

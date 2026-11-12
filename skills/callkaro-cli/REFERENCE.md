@@ -103,7 +103,7 @@ Subcommands: `list` `get` `create` `update` `delete` `upload` `export` `assign` 
 
 ## `cku agents`
 
-Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `set-languages` `postcall-info` `clone-version` `publish` `toggle-active` `ab` `ab-advanced` `commits` `commit` `diff` `revert` `save-v2` `delete-version` `duplicate`
+Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `memory` `voice-rotation` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `set-languages` `postcall-info` `clone-version` `publish` `toggle-active` `ab` `ab-advanced` `commits` `commit` `diff` `revert` `save-v2` `delete-version` `duplicate`
 
 ## `cku chat-agents`
 

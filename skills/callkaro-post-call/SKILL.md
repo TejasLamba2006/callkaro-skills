@@ -54,7 +54,9 @@ Global rules for extraction. A pattern that works: extract only what the transcr
 
 The dashboard (Post-call, Post Call Strategy, Primary and Secondary Strategy tabs) labels the same rows "0-10 seconds", "10-30 seconds", "30-60 seconds", ">60 seconds" and "Only agent turns". The table above is the recommended starting point, not what every agent has: read the version's `post_call_strategy` before assuming.
 
-`DEFAULT_VALUES` skips extraction and uses the configured defaults. `postcallmodel` is a legacy fallback; use `post_call_strategy`. Model ids come from `cku models --slot post-call` (slots differ: some agent models are not allowed here).
+`DEFAULT_VALUES` is a strategy value, not a model. It is valid in **any** duration bucket: it skips LLM extraction, assigns each post-call variable's `defaultValue`, and applies `default_disposition_reason`. The primary strategy decides; a `secondary_post_call_strategy` bucket is consulted only when the corresponding primary bucket is unset. The recommended secondary pairs `callkaro/krishna-2.5` with `gpt-5.6-luna` or `gpt-6-luna`.
+
+With `1-10: DEFAULT_VALUES`, sub-10-second replies such as “not interested” or callback requests are not extracted. Never flip a bucket to or from `DEFAULT_VALUES` on a live agent unless asked. `postcallmodel` is a legacy fallback; use `post_call_strategy`. Model ids come from `cku models --slot post-call` (slots differ: some agent models are not allowed here).
 
 ## Conversion and disposition
 

@@ -42,6 +42,16 @@ Choosing:
 3. Prefer 3 when switch points can be written as conditions on metadata or on variables the LLM extracts reliably.
 4. A badly designed 2 or 3 performs worse than a well-designed 0. Architecture does not replace design.
 
+### Decision model: Switch Nodes Using (`decision_model`)
+
+Types 2 and 3 only. `null` (default) leaves switching to the primary LLM through its `switch_capability` tool. With `{ "provider", "model", "min_confidence", "max_history_turns" }`, a separate decision model runs after every user turn, before the primary LLM, and chooses “stay” or “switch to X”; the primary LLM does not receive `switch_capability`.
+
+- Allowed provider/model pairs: `typesafe` / `jev-latest` (Jev) or `openai_decisions` / `gpt-6-luna` (Luna).
+- `min_confidence`: `0`–`1`, default `0.5`. `max_history_turns`: integer `1`–`50`, default `20`.
+- No extra keys are allowed. The object is replaced whole on save. Types 0 and 1 must leave it `null` or omit it.
+- Every capability/node needs a `description` string: short description of what it handles. Decision model reads this on types 2 and 3; otherwise unused. Missing description only warns in UI, leaving decision model without context.
+- Avoid `extract_variables` with `is_required: true`: the node cannot exit until required values are collected, holding back decision-model switches. The editor warns but does not block.
+
 ### Multi-prompt mechanics (type 2)
 
 - `systemprompt` is the shared base (persona). `capabilities` are the flow blocks; each has a unique `capability` name and `system_prompt`; exactly one has `is_starting: true`.

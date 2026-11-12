@@ -206,8 +206,49 @@ Attach large reference material that will not fit in the prompt. Add a Say While
 
 Five dashboard settings that replace work people otherwise do in the prompt or in code.
 
-- **Call Memory** (Settings, Call Memory tab; off by default; the docs say the switch is shown to master admins only). When on, functions get `x_call_history`: earlier calls with the same phone number, newest first, never the current call. Options: calls to fetch (default 10, max 200), connected calls only (default yes), days back (default 30, 0 is no limit), other agents' calls (default this agent only), include transcripts (default no, makes the list much larger). **It is never added to the prompt by itself.** A pre-call function reads it and writes a short summary into the prompt. Fields and rules: `callkaro-functions`.
-- **Voice Rotation on Retry** (same tab, works with Call Memory off). The next call to a contact uses the next voice in a list of up to 5 retry voices when the previous call matched a condition: **Instant hangup** (connected but the user never spoke) or **Custom** rules that must all match (post-call variable, hangup reason, call duration, conversion status). After the last voice: keep the last one (default), go back to primary, or start the list again. Use it for leads who pick up and drop on the first voice.
+### Call Memory and `agentMemory`
+
+Call Memory is off by default. Both Call Memory and Voice Rotation live in the version's `agentMemory` object, which the backend **replaces whole** on write. The `cku agents memory <id> --versions <v>` and `cku agents voice-rotation <id> --versions <v>` commands merge safely; `cku agents update` includes `agentMemory` among its wholesale-merge keys. For raw writes, preserve the complete object and both feature configs.
+
+| Field | Type, range, default | Contract |
+|---|---|---|
+| `enabled_for_call` | bool, `false` | Enables `x_call_history` for functions. |
+| `call_filters.maxCalls` | int `-1`–`200`, `10` | `-1` fetches up to 200 earlier calls. |
+| `call_filters.onlyConnected` | bool, `true` | Include only connected calls by default. |
+| `call_filters.maxDays` | int `0`–`3650`, `30` | `0` means no age limit. |
+| `call_filters.additionalAgents` | `{mode, agentIds}`; `{mode: "self", agentIds: []}` | `mode`: `self`, `all`, or `selected`; `agentIds` holds up to 50 ids for `selected`. |
+| `call_filters.includeTranscript` | bool, `false` | Adds transcripts to history items; increases payload size. |
+
+When enabled, functions get `x_call_history`: earlier calls with the same contact, newest first, never the current call. It is never added to the prompt by itself. Dashboard test calls have no real contact, so `x_call_history` is empty on test calls.
+
+### Voice Rotation on Retry
+
+Works with Call Memory off. Rotation uses the previous call to the same contact on the **same version**; calls on other versions do not count. `voice_rotation_config` is part of `agentMemory`:
+
+| Field | Contract |
+|---|---|
+| `enabled` | bool. |
+| `trigger.mode` | `instant_hangup` or `custom`. |
+| `trigger.previous_call_status` | `connected` or `not_connected`. |
+| `trigger.conditions[]` | Up to 20 conditions. Sources: `post_call_variable` (requires `field`), `hangup_reason`, `call_duration`, `conversion_status`. Operators: `equals`, `not_equals`, `empty`, `not_empty`, `eq`, `gt`, `gte`, `lt`, `lte`. |
+| `voices[]` | Up to 5 complete voice configs. Copy each `configuration` from `cku voices --json`. The CLI checks retry voice provider/model against live `GET /cli/voices/catalog`; the backend does not validate this pair. Retry voice is used as-is, not merged over the primary. |
+| `on_exhausted` | `last`, `primary`, or `cycle`. |
+
+`instant_hangup` only matches calls placed after the flag existed. Custom conditions must all match. After a match, the next call uses the next retry voice; the exhausted behavior controls what happens after the last voice.
+
+Example CLI edits (the commands preserve the rest of `agentMemory`):
+
+```bash
+cku agents memory <agentId> --versions <vid> --enable --max-calls 5 --days 30
+cku agents voice-rotation <agentId> --versions <vid> --enable --voices @voices.json
+cku agents voice-rotation <agentId> --versions <vid> --trigger custom --status not_connected \
+  --condition hangup_reason:equals:no-answer --on-exhausted cycle
+```
+
+Function access: `callkaro-functions`.
+
+### Filler, agent transfer, pronunciations
+
 - **Filler Configuration** (own tab): `None`, `Dynamic` (an LLM writes a short filler; needs a low-latency model and a prompt asking for 1 to 4 words, no questions, no promise) or `Static` (random pick from your phrase list, no LLM, fastest and most predictable). Filler Delay is how long to wait before playing one; if the reply is ready first, the filler is skipped. Prefer Static with several short phrases over telling the model to say "hmm" in the prompt, and avoid phrases that commit to an outcome ("Yes, I can do that").
 - **Call Transfer to Agent** (Transfer & Language tab): hands the live call to **another AI agent**. Fields: Agent, When to Transfer, Message Type While Transferring (Static or None), Start Message Type After Transfer (Static or Dynamic). This is separate from the `transfer_call` function, which goes to a human number.
 - **Custom Pronunciations** (Formatting tab): map a word to how it should be spoken ("Rajesh" to "Raa-jesh"). It is the fix for a mispronounced name or brand. Mapping a function name to `""` (see Speech hygiene) is a second use of the same table.
@@ -220,7 +261,7 @@ Extract Customer Name, Email, Interested Product, Appointment Date. Types: Text,
 
 ## Key configs
 
-Call initiation: user speaks first, agent natural, or agent with custom message plus initial delay. Call termination: custom closing message ends the call. Call settings: Indian number format, auto reschedule, followup, background noise plus volume, noise cancellation (use Callkaro strategy, strength 1.00 to start), voicemail dynamic or custom, time limit, disconnect timeout. TTS caching: full response (waits for the whole LLM reply before speaking), sentence level (speaks sentence by sentence as the reply streams), none; see TTS caching strategy below. Silence, endpointing, interruption, preemptive synthesis, language switching per docs.
+Call initiation: user speaks first, agent natural, or agent with custom message plus initial delay. Call termination: custom closing message ends the call. Call settings: Indian number format, auto reschedule, followup, background noise plus volume, noise cancellation (use Callkaro strategy; strength `0.8` for new agents), voicemail dynamic or custom, time limit, disconnect timeout. TTS caching: full response (waits for the whole LLM reply before speaking), sentence level (speaks sentence by sentence as the reply streams), none; see TTS caching strategy below. Silence, endpointing, interruption, preemptive synthesis, language switching per docs.
 
 ### Time limit is a design input, not a default
 
@@ -243,6 +284,32 @@ Version-level `vad_configuration` exposes:
 - `interrupt_speech_duration` (seconds, default `0.5`) and `interrupt_min_words` (0–4, default `3`): general barge-in tuning.
 
 In multi-prompt (type 2) and pathway (type 3) agents, each entry in `capabilities[]` can override manual interruption duration via `"vad_configuration": { "manual_interruption_duration": <0.3..5> }` (**Capability VAD Overrides** / **Node VAD Overrides** in the dashboard; all other VAD keys inherit from the version). Set a longer duration on greeting/disclosure/OTP-readout stages and a shorter duration (`0.5`–`0.8`s) on negotiation and open Q&A stages.
+
+#### Recommended baseline VAD and call settings (create / review only)
+
+API-stored recommendations for new agents:
+
+| Object | API field | Recommended value |
+|---|---|---:|
+| `vad_configuration` | `silence` | `555` ms |
+| | `threshold` | `4` (dashboard shows `0.4`, stored ×10) |
+| | `prefix_padding_ms` | `206` ms |
+| | `min_speech_duration` | `0.05` s |
+| | `interrupt_speech_duration` | `0.4` s |
+| | `interrupt_min_words` | `3` |
+| | `manual_interruption` | `true` |
+| | `manual_interruption_duration` | `1.1` s |
+| | `clear_buffer_if_not_interrupted` | `false` |
+| | `max_buffered_speech` | `10` s |
+| | `min_endpointing_delay` | `0.3` s |
+| | `max_endpointing_delay` | `5` s |
+| | `preemptive_synthesis` | `true` |
+| Version | `noise_cancellation_strength` | `0.8` |
+| Version | `voicemail_msg` | `false` |
+| `speakfirst` (outbound) | `message_interruption` | `true` |
+| `speakfirst_inbound` | `message_interruption` | `false` |
+
+**Iron rule:** use recommendations when creating agents, filling missing sibling keys on whole-object writes, and flagging deviations in review. Never overwrite untouched fields on an existing or live version unless asked.
 
 Prefer `custom` with two fixed, on-brand lines. `dynamic` generates plausible-sounding but off-script filler that lands before your real greeting and reads as a double opener — this is a real, confirmed production failure mode. Also remember the related contentless-input trap: a bare "haan"/silence is not a yes, so silence_count and the prompt text must agree with your "re-ask once, then advance" rules.
 

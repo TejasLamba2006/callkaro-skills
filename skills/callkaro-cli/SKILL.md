@@ -249,12 +249,13 @@ cku agents update <agentId> --set '{"temperature":5}' --versions <versionId>
 and names the offending fields. Passing `--commit "<msg>"` on an agent-level
 update attaches the message to the agent's current version automatically.
 
-**Rule 2: partial objects are merged, not replaced — on `cku` only.** The
-backend replaces `voice_configuration`, `transcriber`, and seven other objects
-*wholesale*. A partial update would drop every key you did not name, and the
-agent would be left with no voice. `cku` merges against the current value first.
-On the official `ck`, **it does not** — so with `ck`, always send the complete
-object. When a voice or transcriber change "silently does nothing", this is why.
+**Rule 2: wholesale objects are merged by `cku` and official `ck` 5.4.6+.** The backend replaces ten objects wholesale; `agentMemory` is now the 10th `REPLACE_WHOLESALE_KEYS` object. `cku` and official `ck` 5.4.6+ deep-merge them via `planUpdate`. Official `ck` 5.4.5 still replaces them, so send full objects there. `functions` remains `cku`-only merge-by-`name`, with `--replace-functions`; official `ck` still replaces that array wholesale. `cku` validates `voice_configuration`, `secondary_voice_configuration`, and `voice-rotation --voices` against live `GET /cli/voices/catalog`, allowing already-saved legacy pairs on that version.
+
+`--dry-run` previews `changing` vs `unchanged` without saving. Unchanged fields are dropped before counting; more than 8 fields that actually change requires `--yes`, guarding against pasting full `agents get` output.
+
+```bash
+cku agents update <id> --set '{"voice_configuration":{"voice_speed":1.1}}' --dry-run
+```
 
 ```bash
 # correct on both CLIs — send the whole object
@@ -284,6 +285,20 @@ Values are validated before sending: enum fields list their allowed values,
 and a voice/transcriber model belonging to a *different* provider is rejected
 locally. Both mistakes otherwise persist silently and only show up as a broken
 call.
+
+### Call memory and voice rotation
+
+Both features live in version-level `agentMemory`:
+
+```bash
+cku agents memory <agentId> --versions <vid> [--enable|--disable] [--max-calls <n>] [--days <n>] [--only-connected|--all-calls] [--agents self|all|<id,id>] [--with-transcript|--without-transcript]
+cku agents memory <agentId> --versions <vid> --enable --max-calls 5 --days 30
+cku agents voice-rotation <agentId> --versions <vid> [--enable|--disable] [--trigger instant_hangup|custom] [--status connected|not_connected] [--condition source[.field]:op[:value]]... [--clear-conditions] [--voices @voices.json] [--on-exhausted last|primary|cycle]
+cku agents voice-rotation <agentId> --versions <vid> --enable --voices @voices.json
+cku agents voice-rotation <agentId> --versions <vid> --trigger custom --status not_connected --condition hangup_reason:equals:no-answer --on-exhausted cycle
+```
+
+Memory limits: `maxCalls` `-1`–`200` (`-1` fetches up to 200), `maxDays` `0`–`3650` (`0` means no limit), up to 50 selected agent IDs. Rotation allows up to 20 conditions and 5 voices. Copy each complete voice `configuration` from `cku voices --json`; the CLI checks retry voice provider/model against the live catalogue, but the backend does not. Retry voice is used as-is, not merged over primary. Rotation tracks the same version only; `instant_hangup` matches calls placed after the flag existed.
 
 ### Version lifecycle
 

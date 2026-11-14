@@ -1,6 +1,6 @@
 ---
 name: callkaro-cli
-description: Operate CallKaro voice and chat agents, calls, numbers, batches, simulations and analytics through the cku command-line tool. Use for ANY CallKaro task done from a terminal or a script — listing or editing agents, publishing versions, A/B tests, placing calls, reading call logs, managing phone numbers, batch campaigns, audits, or switching between accounts. Prefer this over raw REST when the CLI covers the job.
+description: Operate CallKaro voice and chat agents, calls, numbers, batches, simulations and analytics through the cku command-line tool. Use for ANY CallKaro task done from a terminal or a script — listing or editing agents, publishing versions, A/B tests, placing calls or live test calls (cku test), reading call logs, managing phone numbers, batch campaigns, audits, or switching between accounts. Prefer this over raw REST when the CLI covers the job.
 ---
 
 # CallKaro CLI (`cku`)
@@ -465,13 +465,15 @@ cku sim delete <testCaseId> --yes
 - `sim models` lists the models that can play the simulated caller and marks the default.
 - `sim update --variables` / `--functions` **replace** the whole map / list.
 - `--functions` entries are `{name, mock?, response?}`. `"mock": false` runs the agent's real function (never for WhatsApp functions), so treat it like `agents chat`: it has real side effects.
+- `--real-functions` (cku 0.10+) runs **every** function on the version for real, like switching every Mock toggle off in the dashboard; `--functions` entries still win by name. `sim create` reads the functions from `--versions <id>` (default: the agent's default version); `sim update` also needs `--agent <agentId>`.
 - `sim results` prints `GRADING FAILED` (and `--wait` exits 1) when the LLM grader crashed (`analysisStatus === 'failed'`), instead of misreporting it as a test failure.
 
 - `--variables` fills the agent's `{{placeholders}}` for that test. Give a JSON
   object (inline or `@vars.json`); numbers and arrays are
   stringified for you, because the backend stores every value as a string.
-- `--functions` mocks tool calls: a list of `{name, response}`. Which calls are
-  mocked is decided by the server; there is no flag to force real functions.
+- `--functions` mocks tool calls: a list of `{name, response}`. An in-call
+  function left out of the list is not run for real: it returns a fake
+  success. Only an explicit `"mock": false` entry runs the real function.
 - **Use `--wait`** instead of polling. It blocks until every result of the batch
   exists (`tests x versions x epoch`), prints a PASS/FAIL table, and **exits 1 if
   any test failed or the wait timed out** (`--timeout <seconds>`, default 600).
@@ -481,6 +483,55 @@ cku sim delete <testCaseId> --yes
   `sim results` shows whatever has finished so far.
 - `sim delete` needs `--yes` when there is no terminal; without it the command
   fails immediately instead of waiting for a keypress.
+
+### Live test calls (`cku test`, cku 0.10+)
+
+The agent editor's **Test Chat** tab from a terminal: a real test call on the
+real call runtime, with the caller typing instead of speaking. Nothing is
+mocked, so node switching, function calls and post-call analysis behave as in
+production. Use it when you need the real runtime; use `sim` when functions must
+be mocked or you need many epochs.
+
+**Every run is a real test call.** All functions run for real (CRM writes,
+WhatsApp, webhooks), credits are used, and the call lands in call history. Get
+the user's approval before each run, never point it at an agent whose functions
+write to production systems without saying so, and pass `--yes` only once
+approved.
+
+You play the caller, one turn per command (a background process holds the call
+between commands, and ends it after 10 idle minutes):
+
+```bash
+cku test start <agentId> [--versions <v>] [--variables @vars.json] --yes --json   # → sessionId, callSid, the agent's opening turn
+cku test say <sessionId> "Haan ji, bataiye" --json   # one caller turn → the agent's reply, functions, node switches
+cku test end <sessionId> --json                      # hang up → full transcript
+```
+
+- Each `say` returns `events`: `agent` (text), `function` (name, arguments),
+  `capability` (node switch), `ended` (the agent hung up). When `ended` is true,
+  stop and run `end`. The room closes about a second after the agent's goodbye,
+  so a hang-up often shows up as an `ended` event on the next `say` instead.
+- Write each caller turn the way the persona would speak on a phone: short, in
+  their language, with the test move from the scenario. Then grade the
+  transcript yourself against the criteria, citing the turn.
+- Post-call values arrive after the call: `cku calls list --sid <callSid> --json`.
+
+Or the CLI plays the caller with an LLM and grades the call:
+
+```bash
+cku test run <agentId> --test <testCaseId> --yes            # reuse a saved sim test case (persona, prompt, criteria, variables)
+cku test run <agentId> --persona "..." --prompt "..." --criteria "..." \
+  --llm anthropic [--llm-model <id>] [--judge-model <id>] [--max-turns 20] --yes --json
+```
+
+- Providers: `openai`, `anthropic`, `gemini`, `deepseek`, `groq`, `openrouter`,
+  `ollama`, or `--llm-url <OpenAI-compatible base URL>` with `--llm-model`.
+  Keys come only from the environment (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
+  ..., or `CKU_LLM_API_KEY`). Without `--llm` it uses the first key it finds.
+- Exits 1 when the judge fails the call. `GRADING FAILED` means the judge
+  returned no JSON: rerun, do not count it as a failure. `endedBy` says who
+  ended the call (`caller`, `agent`, `max-turns`, `timeout`).
+- Without `--criteria` the call runs and prints the transcript, ungraded.
 
 ### Drafting test cases with AI (dashboard credential)
 
@@ -794,7 +845,8 @@ cku chat-audit create <agentId> --strategy "..." --pct-per-day 20 --model <name>
 cku chat-audit update <agentId> <strategyId> --active|--disable
 cku chat-audit batch <agentId> <strategyId> --max 50   # audits now, uses credits
 cku chat-audit create <agentId> --strategy "..." --chatflow-summary "stages, required actions, outcome"   # auditor judges against this summary
-cku chat-sim create <chatAgentId> --name "..." --persona "..." --prompt "..." --criteria "..."
+cku chat-sim create <chatAgentId> --name "..." --persona "..." --prompt "..." --criteria "..." \
+  --mocks '[{"name":"lookup","response":{"ok":true}},{"name":"check_slot","enabled":false}]'   # "enabled":false runs the REAL function
 cku chat-sim run <chatAgentId> --tests <ids> --versions <ids> [--epochs 2]
 cku chat-sim results <runId>
 cku secrets list

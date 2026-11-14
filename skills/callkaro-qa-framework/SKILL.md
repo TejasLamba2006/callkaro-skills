@@ -118,6 +118,7 @@ Universal FAIL lines to copy into every `successCriteria` (the grader passes any
 - **No audio in sim:** no STT/TTS, VAD, noise, interruptions, silence timers, voicemail or DTMF. Put those on the Manual Test Cases tab; in sim, emulate speech realism in text (fillers, false starts, numbers split across turns, two intents in one turn).
 - **Static mocks:** each mocked function returns one fixed response per test regardless of arguments. Split "first call empty, second call has slots" into two separate tests.
 - **Unmocked in-call functions return fake success:** an unmocked in-call function returns `{"status":"ok","result":"Mock result for <name>"}` and the bot invents data. Mock every in-call function in every test.
+- **Running a real function is opt-in per function:** a `testFunctions` entry with `"mock": false` (CLI: `--functions '[{"name":"fn","mock":false}]'`; chat sims: `"enabled": false` in `--mocks`) runs the agent's real function. WhatsApp functions never run for real. Use it for an integration test of a read-only function, and never on one that books, sends or writes to a production system: every run of every epoch makes that call.
 - **Pre-call functions ignore mocks and hit the real API:** supply all pre-call outputs via `testVariables`, and flag any pre-call function that writes to an external system before running.
 - **Start a test directly in one node:** the runtime reads two metadata keys, `starting_capability` and `all_capabilities`, that override the normal flow, so a multi-prompt or pathway test can begin in a late node (deal closure, hold) without walking the whole call. Pass `starting_capability` as the capability or node name. The exact shape `all_capabilities` expects was not recorded when this was read from the backend source; confirm it on one test call before building a suite on it, and say in the QA notes that the test skipped the earlier stages, because state those stages normally build will be missing.
 - **Simulated callers hang up first (`ended_by: user_hangup`):** unless the test is about the caller leaving, tell the caller script to hold back from hanging up so the agent's own closing line and `end_call` are tested.
@@ -140,6 +141,16 @@ cku sim results <batchId> --wait --agent <agentId>
 `--wait` blocks until every result exists and exits 1 on any failure or timeout. Five runs per case; confirm the run count in the first results. Record per case: runs, passes, pass %, what happened, how the agent handled it. A case passing some runs and failing others is flaky behaviour, not a pass: note the pattern.
 
 Honest limits: simulations run with empty metadata unless `testVariables` are given, and auto-grading can fail platform-side. Sim transcripts test logic only; live calls prove the metadata path (`callkaro-qa-ops`, sim honesty).
+
+### Live test calls (real runtime, text caller)
+
+`cku test` (see `callkaro-cli`) runs a case as a real test call on the real call runtime, the editor's Test Chat: real node switching, real pre-call and in-call functions, real post-call values. Use it for the critical cases after the sims pass, and for cases a mock cannot express (a pre-call function's real output, a function chain, post-call extraction). Each run is a real test call with every function live, so get approval per run and keep it to agents whose functions are safe to fire.
+
+```bash
+cku test run <agentId> --test <testCaseId> --versions <versionUnderQA> --yes   # same test case, LLM caller + judge
+```
+
+Or play the caller yourself (`cku test start` / `say` / `end`) when the case needs judgement turn by turn. Record live results in the Simulation Results tab with the call id, marked as live. Still text only: audio, VAD, interruptions and noise stay on the Manual Test Cases tab.
 
 ## Stage 3: manual cases
 

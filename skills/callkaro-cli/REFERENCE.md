@@ -238,6 +238,10 @@ Subcommands: `create` `schedule` `list` `get` `status` `send-next-try` `send-unt
 
 Subcommands: `tests` `create` `update` `models` `delete` `run` `runs` `results` `draft-from-call` `generate` `variables`
 
+## `cku test`
+
+Subcommands: `start` `say` `end` `run`
+
 ## `cku chat-sim`
 
 Subcommands: `tests` `create` `update` `delete` `run` `runs` `results`

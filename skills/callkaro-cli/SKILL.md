@@ -161,7 +161,7 @@ cku admin numbers <ids...> --phone <n,n> [--mode add|replace]
 
 Every write is confirmed, and needs `--yes` when there is no terminal.
 
-**Model lists are per account.** One account's `agent` slot can hold 26 models where another holds 44, so `cku models` and `agents update` validation must read the client's own catalogue. `cku admin impersonate` stores the client's dashboard session, and any login monitoring that client (`cku monitor use`, `CK_ACCOUNT_ID`) uses it automatically. `cku models` names the account its list came from; if it says `catalog.json`, there is no session for that client yet, so impersonate it first.
+**Model lists are per account.** One account's `agent` slot can hold 17 models where another holds 26. `cku models`, `cku transcribers` and `agents update` validation read the account in effect from `/cli/llms` and `/cli/transcribers` (cku 0.10.1+), so a login monitoring a client (`cku monitor use`, `CK_ACCOUNT_ID`, `cku admin impersonate`) sees that client's list with no extra sign-in.
 
 **Function code goes through the dashboard, not `agents update`.** `cku agents update`
 refuses some function code ("This code can't be saved"); the dashboard's version
@@ -249,7 +249,7 @@ cku agents update <agentId> --set '{"temperature":5}' --versions <versionId>
 and names the offending fields. Passing `--commit "<msg>"` on an agent-level
 update attaches the message to the agent's current version automatically.
 
-**Rule 2: wholesale objects are merged by `cku` and official `ck` 5.4.6+.** The backend replaces ten objects wholesale; `agentMemory` is now the 10th `REPLACE_WHOLESALE_KEYS` object. `cku` and official `ck` 5.4.6+ deep-merge them via `planUpdate`. Official `ck` 5.4.5 still replaces them, so send full objects there. `functions` remains `cku`-only merge-by-`name`, with `--replace-functions`; official `ck` still replaces that array wholesale. `cku` validates `voice_configuration`, `secondary_voice_configuration`, and `voice-rotation --voices` against live `GET /cli/voices/catalog`, allowing already-saved legacy pairs on that version.
+**Rule 2: wholesale objects are merged by `cku` and official `ck` 5.4.6+.** The backend replaces ten objects wholesale; `agentMemory` is now the 10th `REPLACE_WHOLESALE_KEYS` object. `cku` and official `ck` 5.4.6+ deep-merge them via `planUpdate`. Official `ck` 5.4.5 still replaces them, so send full objects there. `functions` remains `cku`-only merge-by-`name`, with `--replace-functions`; official `ck` still replaces that array wholesale. `cku` validates `voice_configuration`, `secondary_voice_configuration`, and `voice-rotation --voices` against live `GET /cli/voices/catalog`, and (cku 0.10.1+, official 5.4.8) `model`, `secondary_model`, `postcallmodel`, `transcriber` and `secondary_transcriber` against live `GET /cli/llms` and `GET /cli/transcribers`, allowing already-saved legacy values on that version.
 
 `--dry-run` previews `changing` vs `unchanged` without saving. Unchanged fields are dropped before counting; more than 8 fields that actually change requires `--yes`, guarding against pasting full `agents get` output.
 
@@ -335,13 +335,15 @@ CK_ACCOUNT=<account> cku dashboard api PUT \
 
 **Transitions persistence trap:** `cku dashboard api PUT /v2/agents/<a>?version=<v>` does a shallow merge on the `capabilities` array — `transitions` fields are silently dropped. Always write transitions through `cku agents update --set @capabilities_array --commit`.
 
-### Commits, diff, revert, v2 save (dashboard credential)
+### Commits, compare, revert, v2 save
 
 ```bash
-cku agents commits <id> [--versions <v>] [--page 1] [--limit 25]
-cku agents commit <commitId>
-cku agents diff <id> --commits <idA,idB>          # or --versions <vA,vB>
-cku agents revert <id> <commitId> --yes           # rewrites the version to that commit
+cku agents commits <id> [--versions <v>] [--page 2]   # needs only `cku login` (cku 0.10.1+)
+cku agents commit <commitId> [--json]                  # --json: the full saved state
+cku agents compare <id> --a <vA> --b <vB> [--field model]      # two versions; `diff` is an alias
+cku agents compare <id> --a <cA> --b <cB> --commits            # two commits
+cku agents revert <id> <commitId> --yes           # rewrites the version to that commit (records a new commit)
+# save-v2, delete-version and duplicate below still use the dashboard credential
 cku agents save-v2 <id> --versions <v> --set @patch.json --message "why"
 cku agents delete-version <id> <versionId> --yes
 cku agents duplicate <id> --name "Copy" [--versions v1,v2]
@@ -628,32 +630,34 @@ cku models --slot agent    # the full list for one slot
 cku models --json
 ```
 
-**Models are scoped per slot, and the slots do not agree.** `agent` has 44
-models; `post-call` has 9 and excludes `gpt-4o` and `o4-mini`. So this is fine:
+**Models are scoped per slot, and the slots do not agree.** `post-call` is
+narrower than `agent`: on one account `gpt-4.1` is an agent model but not a
+post-call one. So this is fine:
 
 ```bash
-cku agents update <id> --set '{"model":"gpt-4o"}'
+cku agents update <id> --set '{"model":"gpt-4.1"}'
 ```
 
 and this is rejected locally, correctly:
 
 ```bash
-cku agents update <id> --set '{"postcallmodel":"gpt-4o"}'
+cku agents update <id> --set '{"postcallmodel":"gpt-4.1"}'
 ```
 
 `model` and `secondary_model` follow the `agent` slot; `postcallmodel` follows
 `post-call`. There are other slots the server exposes (`kpi-rca`, `ai-auditor`,
 `simulation`, …) that are not agent fields.
 
-`cku models` works with or without a dashboard session — it reads the live
-server when you have one, otherwise the copy in `catalog.json` last synced from
-it, and it prints which source it used. A model that a stale list omits is
-rejected *before* it reaches the server, so a refusal is not proof the model is
-unavailable.
+`cku models` reads the account's live list (`/cli/llms`), the same one
+`agents update` checks, so a value copied from it is accepted. A model already
+saved on the target version is accepted even if the list no longer carries it
+(legacy values), and if the list cannot be fetched the CLI warns and lets the
+server decide. Transcriber provider and model pairs are checked the same way
+against `cku transcribers`.
 
 ## Dashboard commands need a second credential
 
-`cku kpi`, `cku analyzers`, `cku models` and `cku sim variables` talk to the **dashboard** API, not
+`cku kpi`, `cku analyzers` and `cku sim variables` talk to the **dashboard** API, not
 `/cli/*`. They need their own sign-in:
 
 ```bash
@@ -845,6 +849,14 @@ cku chat-audit create <agentId> --strategy "..." --pct-per-day 20 --model <name>
 cku chat-audit update <agentId> <strategyId> --active|--disable
 cku chat-audit batch <agentId> <strategyId> --max 50   # audits now, uses credits
 cku chat-audit create <agentId> --strategy "..." --chatflow-summary "stages, required actions, outcome"   # auditor judges against this summary
+# Audit results, read-only (cku 0.10.1+, `cku login` only):
+cku audit batches [--agent <id>] [--from 2026-11-01 --to 2026-11-14]   # voice audit runs
+cku audit summary <batchId>                    # score, severity, categories; --by-strategy takes a strategy id
+cku audit calls <batchId> --severity high      # or --below-80 | --category <dimension:category> | --var name=value
+cku audit call <batchId> <callId> --json       # one audited call with every issue
+cku audit report <batchId> | cku audit strategy-reports
+cku chat-audit batches [--agent <id>]          # `reports` is an alias; also strategy-reports
+cku chat-audit report <batchId> | cku chat-audit audits <batchId> | cku chat-audit audit <auditId>
 cku chat-sim create <chatAgentId> --name "..." --persona "..." --prompt "..." --criteria "..." \
   --mocks '[{"name":"lookup","response":{"ok":true}},{"name":"check_slot","enabled":false}]'   # "enabled":false runs the REAL function
 cku chat-sim run <chatAgentId> --tests <ids> --versions <ids> [--epochs 2]
@@ -887,6 +899,7 @@ cku workflows journey <id> <phone>
 ```bash
 cku contacts list [--search <text>] [--attr city=Pune] [--columns city,stage] [--assigned-to-me]
 cku contacts get <phone> [--json]
+cku contacts messages <phone> [--channel whatsapp] [--agent-phone-number <n>] [--page 2]   # chat history, newest first
 cku contacts create <phone> --attr first_name=Rahul --attr city=Pune --channel whatsapp
 cku contacts update <phone> --attr stage=hot --clear callback_time
 cku contacts delete <phone> --yes
@@ -916,12 +929,12 @@ cku contacts attributes delete lead_stage --yes
 - `cku folders list|create <name>|rename <folderId> <name>|delete <folderId> --yes|move <folderId> --agents a1,a2`.
 - `cku agents set-languages <agentId> --languages en,hi --versions v1,v2` sets switchable languages on several versions in one call. `cku agents postcall-info <agentId>` lists post-call variables and drop-off reasons.
 - `cku analyzers batches`, `batch-create --set @body.json`, `batch-calls <batchId> [--page n] [--export]`.
-- `cku chat-agents diff <chatAgentId> (--versions vA,vB | --commits cA,cB)`; `cku chat-audit reports [--agent <id>] [--page n]`.
+- `cku chat-agents compare <agentId> --a <vA> --b <vB> [--commits] [--field <name>]` (`cku login` only; `diff` is an alias).
 - `cku chat-agents delete-version <agentId> --versions <id>` (refused if published or assigned by another version); `cku chat-agents import --file <path>` creates an agent from export JSON (several `--file` versions become one agent, agent-level fields must match); `cku chat-agents import-versions <agentId> --file <path>` adds versions; `cku chat-agents commits <agentId> [--versions id]`, `cku chat-agents commit <commitId>`, `cku chat-agents revert <agentId> <commitId>` (sets a version back to a commit's saved state).
 
 **Platform groups** (dashboard credential; every command takes `--json`, destructive ones take `--yes`):
 - `cku inbox list|unread|handoffs [--channel c]|release <fromId> --channel c [--to-id id]|contact <phone> [--page n --limit n]|clear <phone> --yes|deassign <phone>`; `--number <agentPhone>` scopes to one sender. `release` is a DELETE with a body, so it needs `--channel`.
-- `cku wa-campaigns list|analytics <id>|timeseries <id> [--start --end]|export <id> [--fields a,b --include-chat --file out.csv]|send --set @body.json`.
+- `cku wa-campaigns export <id> [--fields a,b --include-chat --file out.csv]|send --set @body.json`. Read-only campaign stats need only `cku login`: `cku whatsapp campaigns [--status completed]`, `cku whatsapp campaign <id>`, `cku whatsapp campaign-daily <id> [--days 14]`, `cku whatsapp template-clicks [templateName]`.
 - `cku finetune list|buckets|create-bucket <name>|jobs|status <jobId>|start --set @body.json|add-model <jobId>|cancel <jobId>|delete-record <callId> --yes`.
 - `cku team members|roles|create-role <name> --permissions a,b|add-member --name --email [--password --permissions]|update-member <id> ...|remove-member <id> --yes|set-webhook [--url u --headers K:V,K2:V2 --events e1,e2] [--analysis-url u]`. The server field for the analysis webhook is spelled `callAalysisWebhook`; the CLI handles it.
 - `cku compliance list|create --gst --username --company [--gst-url --cin-url]|delete <id> --yes`; `cku verified-numbers list|add <phone>|verify <phone> --otp <code>|delete <id> --yes`. `add` sends the OTP, `verify` finishes it.
@@ -1017,7 +1030,7 @@ Common ones:
 | `Invalid id: not a valid id` | invented or malformed id — run the `list` command |
 | `Not logged in. Run \`cku login\`` | no session for the account in effect |
 | `the stored token was rejected and could not be renewed` | the `ck_` token died and the account kept no password — run `cku login --password` to store one, or `cku login` to sign in again |
-| `Run \`cku dashboard login\`` | dashboard command (`kpi`, `analyzers`, `models`) with no dashboard session — a *separate* sign-in from `cku login`, and it expires after 24h |
+| `Run \`cku dashboard login\`` | dashboard command (`kpi`, `analyzers`, `sim variables`) with no dashboard session — a *separate* sign-in from `cku login`, and it expires after 24h |
 | `Run \`cku admin login\`` | `cku admin` command with no admin console session — a *third* sign-in, and it expires after 24h |
 | `--versions is required to update version field(s)` | version-level field without a target |
 | `Invalid value for "postcallmodel"` | that model is valid for `model` but not for post-call — the slots differ, see `cku models` |

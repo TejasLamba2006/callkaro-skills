@@ -59,8 +59,8 @@ Options:
   --slot <name>  list one slot in full, e.g. agent, post-call, kpi-rca
   --json         output raw JSON
 
-  Reads the server when you have a dashboard session, otherwise the copy in
-  catalog.json last synced from it. Use --slot for one slot in full:
+  Reads the account's live list (GET /cli/llms), the one `agents update` validates
+  against. Use --slot for one slot in full:
     cku models --slot agent
 ```
 
@@ -99,15 +99,15 @@ Subcommands: `schema` `list` `get` `create` `import` `update` `validate` `export
 
 ## `cku contacts`
 
-Subcommands: `list` `get` `create` `update` `delete` `upload` `export` `assign` `attributes`
+Subcommands: `list` `get` `messages` `create` `update` `delete` `upload` `export` `assign` `attributes`
 
 ## `cku agents`
 
-Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `memory` `voice-rotation` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `set-languages` `postcall-info` `clone-version` `publish` `toggle-active` `ab` `ab-advanced` `commits` `commit` `diff` `revert` `save-v2` `delete-version` `duplicate`
+Subcommands: `list` `get` `chat` `versions` `export` `import` `create` `update` `memory` `voice-rotation` `set-inbound` `set-outbound` `set-whatsapp-inbound` `set-whatsapp-outbound` `set-languages` `postcall-info` `clone-version` `publish` `toggle-active` `ab` `ab-advanced` `commits` `commit` `compare` `revert` `save-v2` `delete-version` `duplicate`
 
 ## `cku chat-agents`
 
-Subcommands: `diff` `models` `templates` `template` `list` `get` `versions` `create` `update` `create-version` `publish` `delete-version` `import-versions` `import` `commits` `commit` `revert`
+Subcommands: `compare` `models` `templates` `template` `list` `get` `versions` `create` `update` `create-version` `publish` `delete-version` `import-versions` `import` `commits` `commit` `revert`
 
 ## `cku skills`
 
@@ -115,7 +115,7 @@ Subcommands: `install` `update` `dir`
 
 ## `cku whatsapp`
 
-Subcommands: `list`
+Subcommands: `list` `campaigns` `campaign` `campaign-daily` `template-clicks`
 
 ## `cku numbers`
 
@@ -180,7 +180,7 @@ Subcommands: `list` `unread` `handoffs` `release` `contact` `clear` `deassign`
 
 ## `cku wa-campaigns`
 
-Subcommands: `list` `analytics` `timeseries` `export` `send`
+Subcommands: `export` `send`
 
 ## `cku finetune`
 
@@ -210,7 +210,6 @@ Options:
                   groq | cartesia | gnani | callkaro
   --language <l>  filter by language (e.g. hi, en, hi-IN)
   --fields        show the transcriber keys a provider takes (needs --provider)
-  --all           include admin-gated providers
   --json          raw JSON
 ```
 
@@ -248,11 +247,11 @@ Subcommands: `tests` `create` `update` `delete` `run` `runs` `results`
 
 ## `cku chat-audit-strategies`
 
-Subcommands: `list` `get` `models` `create` `update` `reports` `delete` `batch`
+Subcommands: `list` `get` `models` `create` `update` `batches` `strategy-reports` `report` `audits` `audit` `delete` `batch`
 
 ## `cku audit-strategies`
 
-Subcommands: `list` `get` `filter-options` `models` `create` `update`
+Subcommands: `list` `get` `filter-options` `models` `create` `update` `batches` `strategy-reports` `report` `summary` `calls` `call`
 
 ## `cku dnd`
 

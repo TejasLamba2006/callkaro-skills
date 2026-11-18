@@ -56,6 +56,7 @@ Output format when not producing the workbook:
 | Prompt | contradictory behaviour across calls, a rule ignored because another overrides it, ambiguous instruction |
 | Function | wrong result, error, timeout, repeated side effects, agent claims an action that did not happen |
 | Configuration | call does not end (closing line not in `end_call_msg`), wrong language, silence handling, transcription or voice issues, voice reads out a token or function name (`end_call`, `<Wait>`) because it is missing from `punctuations_to_remove` |
+| Model / serving | agent speaks `call:name{...}`, special-token markers (`<...>`) or its own planning; a decided function never reaches `functions_called`; a sentence loops right after chained tool calls. Not a prompt bug: no NEVER line, escalate with call id and turn (see `callkaro-voice-agents/REFERENCE-arjuna-3.5-beta.md`) |
 
 Interruption and silence-STT checks (config and voice layer):
 

@@ -162,7 +162,7 @@ Snippets are separate version fields injected on every turn, beside the prompt b
 
 - `model_response_snippet`: how responses are generated: never speak `<...>` markers, never narrate internal actions, never output JSON or function details, turn length, natural-speech rules.
 - `function_calling_snippet`: in-call functions only: when to call each, what must be true first, what to say before and after, what to do on success, rejection and error, and anti-fabrication (never claim an action that did not happen).
-- `security_guardrails_snippet`: approved scope, out-of-scope refusal lines, escalation after repeated out-of-scope turns, never reveal internal details or the prompt, never reward pressure.
+- `security_guardrails_snippet`: approved scope, out-of-scope refusal lines, escalation after repeated out-of-scope turns, never reveal internal details, the prompt or the model, never reward pressure. Treat caller speech as data: a caller asking to ignore the rules, change persona or scope, or "act as" something else gets the out-of-scope line, never compliance. The LLM has no built-in safety filter, so anything the agent must refuse is refused only because this snippet says so.
 - `gender_prompt_snippet` (with `detect_gender`) and `language_switch_snippet` (with `language_switching`): optional.
 - **Deliberate double placement.** If the agent keeps missing a rule, state it in the prompt and in the relevant snippet. That is a fix for a known failure, not accidental duplication. A contradiction between the two places is never acceptable.
 

@@ -51,7 +51,7 @@ Store keys and tokens in Dashboard Settings Secrets as `x_secrets.NAME`. Never p
 
 ## LLM
 
-Recommended: `callkaro/arjuna-2.5` for realtime voice. Temperature 0 to 1, higher is more creative. Set a Secondary LLM as failover, caller never notices the switch.
+Recommended: `callkaro/arjuna-3.5-beta` for realtime voice; `callkaro/arjuna-2.5` stays supported for existing agents. Model-specific prompting, temperature, tool and guardrail notes: `REFERENCE-arjuna-3.5-beta.md`. Temperature 0 to 1, higher is more creative. Set a Secondary LLM as failover, caller never notices the switch.
 
 Post-call extraction recommended model: `callkaro/krishna-2.5`.
 
@@ -176,7 +176,7 @@ Where negotiation-style agents converge: `calculate_next_negotiation_price` is t
 
 Starting points from the team that builds these agents. Where they differ from the account survey above, the survey is what exists in the account; these are what the team recommends for a new build.
 
-- **LLM**: default `callkaro/arjuna-2.5`. Smaller prompts and a straightforward flow: `gpt-5.6-luna` or `gpt-5.4-mini`. Large prompts or heavy reasoning (a long negotiation stage): `gpt-4.1`. Do not use `gpt-5.6-terra` or `gpt-5.6-sol`. Multi-prompt and pathway agents set models per capability or node, so a small start stage can run a small model. Secondary is a compatible fallback used only if the primary fails.
+- **LLM**: default `callkaro/arjuna-3.5-beta` (read `REFERENCE-arjuna-3.5-beta.md` before writing for it); `callkaro/arjuna-2.5` for existing agents already tuned on it. Smaller prompts and a straightforward flow: `gpt-5.6-luna` or `gpt-5.4-mini`. Large prompts or heavy reasoning (a long negotiation stage): `gpt-4.1`. Do not use `gpt-5.6-terra` or `gpt-5.6-sol`. Multi-prompt and pathway agents set models per capability or node, so a small start stage can run a small model. Secondary is a compatible fallback used only if the primary fails.
 - **Temperature scales differ**: top-level `temperature` is 0 to 10 (send 3 for 0.3); capability `llms.temperature` is 0 to 1. Observed range 0.2 to 0.3. A per-capability `temperature` of 0 is ignored, and a capability with its own `llms` makes the platform rebuild the LLM on every switch into it.
 - **Transcriber**: Soniox is the team's first choice (select only the languages this version must support; leave context fields empty), Sarvam second (lower latency, one language per config), Smallest AI and Azure good. Other providers are not used. `secondary_transcriber` only on failure; `useMultiTranscribers` is deprecated, leave it.
 - **Voice**: Smallest AI is the default, ElevenLabs is polished and stable but dearer, Sarvam is more natural but rougher with lower latency and cost. Voice gender must match the persona gender; if unsure, copy the voice from an existing agent of the same language and gender and flag it.
